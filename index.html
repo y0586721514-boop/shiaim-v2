@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1B2B5E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="שיאים">
+  <title>התנהלות שוטפת — שיאים</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div id="spinner" class="spinner-overlay hidden"><div class="spinner"></div></div>
+<div id="toast-container" class="toast-container"></div>
+<div id="overlay" class="overlay hidden"></div>
+
+<!-- ============ מסך כניסה ============ -->
+<div id="login-screen" class="screen login-screen">
+  <div class="login-card">
+    <div class="login-emblem"><img src="shiaim-logo.jpg" alt="שיאים"></div>
+    <div class="login-title">התנהלות שוטפת</div>
+    <div class="login-subtitle">שיאים</div>
+
+    <form class="login-form" id="login-form" autocomplete="on">
+      <input type="text" id="login-username" class="form-input" placeholder="שם משתמש" autocomplete="username">
+      <input type="password" id="login-password" class="form-input" placeholder="סיסמה" autocomplete="current-password">
+      <button type="submit" class="btn-login">כניסה</button>
+    </form>
+    <div id="login-error" class="login-error"></div>
+    <div class="login-version">גרסה <span id="version-label"></span></div>
+  </div>
+</div>
+
+<!-- ============ מסך הקמה ראשונית (פעם אחת בלבד) ============ -->
+<div id="setup-screen" class="screen login-screen hidden">
+  <div class="login-card">
+    <div class="login-emblem"><img src="shiaim-logo.jpg" alt="שיאים"></div>
+    <div class="login-title">הקמה ראשונית</div>
+    <div class="login-subtitle">קובעים סיסמאות פעם אחת — והן עובדות מכל מכשיר</div>
+    <form class="login-form" id="setup-form" autocomplete="off">
+      <label class="form-label">סיסמה ליעקב (מנהל)</label>
+      <input type="password" id="setup-yakov" class="form-input" placeholder="לפחות 4 תווים">
+      <label class="form-label">סיסמה לאהרון</label>
+      <input type="password" id="setup-aharon" class="form-input" placeholder="לפחות 4 תווים">
+      <button type="submit" class="btn-login">שמור והתחל</button>
+    </form>
+    <div id="setup-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- ============ האפליקציה ============ -->
+<div id="app" class="screen app-shell hidden">
+
+  <!-- ניווט צד -->
+  <aside class="app-sidebar">
+    <div class="sidebar-brand" data-view="today">
+      <div class="sidebar-logo"><img src="shiaim-logo.jpg" alt="שיאים"></div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-brand-title">שיאים</span>
+        <span class="sidebar-brand-sub">התנהלות שוטפת</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <button class="sidebar-nav-item" data-view="today">☀️<span class="nav-label">היום</span></button>
+      <button class="sidebar-nav-item" data-view="projects">📋<span class="nav-label">פרויקטים</span><span class="nav-count" id="nav-count-projects"></span></button>
+      <button class="sidebar-nav-item" data-view="ideas">💡<span class="nav-label">רעיונות</span><span class="nav-count" id="nav-count-ideas"></span></button>
+      <button class="sidebar-nav-item" data-view="clients">👤<span class="nav-label">לקוחות</span></button>
+      <button class="sidebar-nav-item" data-view="suppliers">📦<span class="nav-label">מוצרים וספקים</span></button>
+      <button class="sidebar-nav-item" data-view="settings">⚙️<span class="nav-label">הגדרות</span></button>
+    </nav>
+  </aside>
+
+  <div class="app-workspace">
+
+    <!-- כותרת עליונה -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="header-logo"><span>ש</span></div>
+        <span class="app-title">התנהלות שוטפת — <b>שיאים</b></span>
+      </div>
+      <div class="header-actions">
+        <span id="offline-chip" class="offline-chip hidden" title="שינויים שנשמרו במכשיר ויישלחו כשיהיה חיבור">⏳ ממתין לסנכרון <b id="offline-count">0</b></span>
+        <button id="changes-btn" class="changes-btn" title="יומן שינויים">🔔<span id="changes-badge" class="changes-badge hidden">0</span></button>
+        <span id="user-chip" class="user-chip"><span class="role-dot"></span><span id="user-name">—</span></span>
+        <button id="logout-btn" class="btn-header">יציאה</button>
+      </div>
+    </header>
+
+    <!-- גוף -->
+    <div class="workspace-body" id="workspace-body">
+      <div id="view-container"></div>
+    </div>
+
+    <!-- ניווט תחתון לנייד -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="bottom-nav-item" data-view="today">☀️<span>היום</span></button>
+      <button class="bottom-nav-item" data-view="projects">📋<span>פרויקטים</span></button>
+      <button class="bottom-nav-item" data-view="ideas">💡<span>רעיונות</span></button>
+      <button class="bottom-nav-item" data-view="clients">👤<span>לקוחות</span></button>
+      <button class="bottom-nav-item" data-view="more">⋯<span>עוד</span></button>
+    </nav>
+
+    <button id="fab" class="fab" title="הוספה">+</button>
+  </div>
+</div>
+
+<!-- ============ פאנל פרויקט ============ -->
+<div id="project-panel" class="center-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="project-panel">✕</button>
+    <div class="panel-title">פרויקט</div>
+  </div>
+  <div class="panel-tabs" id="project-tabs">
+    <button class="panel-tab active" data-tab="details">פרטים</button>
+    <button class="panel-tab" data-tab="designs">עיצובים</button>
+    <button class="panel-tab" data-tab="notes">הערות</button>
+  </div>
+  <div class="panel-body" id="project-panel-body"></div>
+  <div class="panel-footer" id="project-panel-footer"></div>
+</div>
+
+<!-- ============ פאנל עיצוב ============ -->
+<div id="design-panel" class="center-panel design-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="design-panel">✕</button>
+    <div class="panel-title">עיצוב</div>
+  </div>
+  <div class="panel-body" id="design-panel-body"></div>
+  <div class="panel-footer" id="design-panel-footer"></div>
+</div>
+
+<!-- ============ פאנל רעיון ============ -->
+<div id="idea-panel" class="center-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="idea-panel">✕</button>
+    <div class="panel-title">רעיון</div>
+  </div>
+  <div class="panel-body" id="idea-panel-body"></div>
+  <div class="panel-footer" id="idea-panel-footer"></div>
+</div>
+
+<!-- ============ פאנל לקוח ============ -->
+<div id="client-panel" class="center-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="client-panel">✕</button>
+    <div class="panel-title">לקוח</div>
+  </div>
+  <div class="panel-body" id="client-panel-body"></div>
+  <div class="panel-footer" id="client-panel-footer"></div>
+</div>
+
+<!-- ============ פאנל ספק ============ -->
+<div id="supplier-panel" class="center-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="supplier-panel">✕</button>
+    <div class="panel-title">ספק / מפעל</div>
+  </div>
+  <div class="panel-body" id="supplier-panel-body"></div>
+  <div class="panel-footer" id="supplier-panel-footer"></div>
+</div>
+
+<!-- ============ יומן שינויים ============ -->
+<div id="changes-panel" class="side-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="changes-panel">✕</button>
+    <div class="panel-title">יומן שינויים</div>
+  </div>
+  <div class="panel-body">
+    <div id="changes-list" class="changes-list"></div>
+    <button id="changes-more" class="btn-secondary btn-block hidden">טען עוד</button>
+  </div>
+</div>
+
+<!-- ============ מודלים ============ -->
+<div id="modal-root"></div>
+
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/api.js"></script>
+<script src="js/state.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/projects.js"></script>
+<script src="js/wings.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

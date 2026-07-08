@@ -20,6 +20,19 @@ function dismissAlert(id) {
   renderTodayView();
 }
 
+/* הסתרת קטעים במסך הבית — נשמר במכשיר */
+const HIDDEN_KEY = 'shiaim2_hidden_sections';
+function getHiddenSections() { try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '{}'); } catch (e) { return {}; } }
+function setSectionHidden(key, val) {
+  const h = getHiddenSections();
+  if (val) h[key] = true; else delete h[key];
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify(h));
+  renderTodayView();
+}
+function dashHideBtn(key) {
+  return '<button class="dash-hide-btn" data-hide="' + key + '" title="הסתר קטע ממסך הבית">הסתר</button>';
+}
+
 function greetingByHour() {
   const h = new Date().getHours();
   if (h < 12) return 'בוקר טוב';
@@ -78,35 +91,45 @@ function renderTodayView() {
       kpiCard('check', doneThisMonth, 'הסתיימו החודש', 'green', 'projects-done') +
     '</div>';
 
-  // דורש תשומת לב — עם "נקה הכל"
-  html += '<div id="dash-attention"></div>';
-  html += '<div class="dash-section-head">' + icon('alert') + '<span>דורש תשומת לב</span>' +
-    (attention ? '<span class="dash-count">' + attention + '</span><button class="dash-clear-btn" id="clear-attention">נקה הכל</button>' : '') + '</div>';
-  if (!attention) {
-    html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
-  } else {
-    html += '<div class="dash-list">';
-    html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDateBoth(p.deadline), 'clock', true)).join('');
-    html += stuck.map(p => attnCard(p.id, 'project', 'amber', p.name, clientName(p.clientId), 'ללא דדליין · ' + daysSince(p.updatedAt) + ' ימים בלי עדכון', 'pause', true)).join('');
-    html += waitingIdeas.map(i => attnCard(i.id, 'idea', 'amber', i.name, '', 'רעיון מחכה להחלטה · ' + daysSince(i.createdAt) + ' ימים', 'ideas', true)).join('');
-    html += '</div>';
+  const hidden = getHiddenSections();
+  const weekItems = thisWeek.length || arrivals.length;
+
+  // דורש תשומת לב — עם "נקה הכל" ו"הסתר"
+  if (!hidden.attention) {
+    html += '<div id="dash-attention"></div>';
+    html += '<div class="dash-section-head">' + icon('alert') + '<span>דורש תשומת לב</span>' +
+      (attention ? '<span class="dash-count">' + attention + '</span><button class="dash-clear-btn" id="clear-attention">נקה הכל</button>' : '') +
+      dashHideBtn('attention') + '</div>';
+    if (!attention) {
+      html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
+    } else {
+      html += '<div class="dash-list">';
+      html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDateBoth(p.deadline), 'clock', true)).join('');
+      html += stuck.map(p => attnCard(p.id, 'project', 'amber', p.name, clientName(p.clientId), 'ללא דדליין · ' + daysSince(p.updatedAt) + ' ימים בלי עדכון', 'pause', true)).join('');
+      html += waitingIdeas.map(i => attnCard(i.id, 'idea', 'amber', i.name, '', 'רעיון מחכה להחלטה · ' + daysSince(i.createdAt) + ' ימים', 'ideas', true)).join('');
+      html += '</div>';
+    }
   }
 
   // השבוע — דדליינים + הגעות
-  const weekItems = thisWeek.length || arrivals.length;
-  html += dashSection('calendar', 'השבוע', weekItems ? (thisWeek.length + arrivals.length) + '' : '');
-  if (!weekItems) {
-    html += '<div class="dash-empty">' + icon('calendar') + '<span>אין דדליינים או הגעות בשבוע הקרוב</span></div>';
-  } else {
-    html += '<div class="dash-list">';
-    html += thisWeek.map(p => attnCard(p.id, 'project', 'ink', p.name, p.status, 'דדליין · ' + fmtDateBoth(p.deadline), 'clock')).join('');
-    html += arrivals.map(p => attnCard(p.id, 'project', 'gold', p.name, clientName(p.clientId), 'צפי הגעה לישראל · ' + fmtDateBoth(p.etaIsrael), 'truck')).join('');
-    html += '</div>';
+  if (!hidden.week) {
+    html += '<div class="dash-section-head">' + icon('calendar') + '<span>השבוע</span>' +
+      (weekItems ? '<span class="dash-count">' + (thisWeek.length + arrivals.length) + '</span>' : '') + dashHideBtn('week') + '</div>';
+    if (!weekItems) {
+      html += '<div class="dash-empty">' + icon('calendar') + '<span>אין דדליינים או הגעות בשבוע הקרוב</span></div>';
+    } else {
+      html += '<div class="dash-list">';
+      html += thisWeek.map(p => attnCard(p.id, 'project', 'ink', p.name, p.status, 'דדליין · ' + fmtDateBoth(p.deadline), 'clock')).join('');
+      html += arrivals.map(p => attnCard(p.id, 'project', 'gold', p.name, clientName(p.clientId), 'צפי הגעה לישראל · ' + fmtDateBoth(p.etaIsrael), 'truck')).join('');
+      html += '</div>';
+    }
   }
 
-  // עדכונים אחרונים — עם כפתור "נקה"
+  // עדכונים אחרונים — עם כפתור "נקה" ו"הסתר"
+  if (!hidden.updates) {
   html += '<div class="dash-section-head">' + icon('bell') + '<span>עדכונים אחרונים</span>' +
-    (newChanges.length ? '<span class="dash-count">' + newChanges.length + '</span><button class="dash-clear-btn" id="clear-updates">נקה</button>' : '') + '</div>';
+    (newChanges.length ? '<span class="dash-count">' + newChanges.length + '</span><button class="dash-clear-btn" id="clear-updates">נקה</button>' : '') +
+    dashHideBtn('updates') + '</div>';
   if (!newChanges.length) {
     html += '<div class="dash-empty">' + icon('check') + '<span>אין עדכונים חדשים — הכל מעודכן</span></div>';
   } else {
@@ -121,11 +144,25 @@ function renderTodayView() {
       '</div>').join('');
     html += '</div>';
   }
+  } // end if (!hidden.updates)
+
+  // כפתור להצגת קטעים מוסתרים
+  const hiddenCount = ['attention', 'week', 'updates'].filter(k => hidden[k]).length;
+  if (hiddenCount) {
+    html += '<button class="btn-secondary btn-block" id="show-hidden" style="margin-top:1.2rem">👁 הצג ' + hiddenCount + ' קטעים מוסתרים</button>';
+  }
 
   container.innerHTML = html;
 
   const importBtn = container.querySelector('#global-import-btn');
   if (importBtn) importBtn.onclick = () => { if (typeof openGlobalImport === 'function') openGlobalImport(); };
+
+  // הסתרה / הצגה של קטעי מסך הבית
+  container.querySelectorAll('.dash-hide-btn').forEach(b => {
+    b.addEventListener('click', (e) => { e.stopPropagation(); setSectionHidden(b.dataset.hide, true); });
+  });
+  const showHiddenBtn = container.querySelector('#show-hidden');
+  if (showHiddenBtn) showHiddenBtn.onclick = () => { localStorage.removeItem(HIDDEN_KEY); renderTodayView(); };
 
   // כרטיסי KPI לחיצים
   container.querySelectorAll('.kpi-card2[data-nav]').forEach(c => {

@@ -25,7 +25,7 @@ function projectMatchesSearch(p, q) {
 
 function getFilteredProjects() {
   const f = S.filters;
-  let list = S.projects.filter(p => !!p.completed === S.showCompleted);
+  let list = importProjects().filter(p => !!p.completed === S.showCompleted);
   if (f.search) list = list.filter(p => projectMatchesSearch(p, f.search));
   if (f.type) list = list.filter(p => p.type === f.type);
   if (f.status) list = list.filter(p => p.status === f.status);
@@ -51,8 +51,8 @@ function getFilteredProjects() {
 function renderProjectsView() {
   const container = $('#view-container');
   const list = getFilteredProjects();
-  const activeCount = S.projects.filter(p => !p.completed).length;
-  const doneCount = S.projects.filter(p => p.completed).length;
+  const activeCount = importProjects().filter(p => !p.completed).length;
+  const doneCount = importProjects().filter(p => p.completed).length;
 
   container.innerHTML =
     '<div class="page-header">' +
@@ -190,6 +190,9 @@ function projectRowHtml(p) {
 /* ================= פאנל פרויקט ================= */
 
 function openProjectPanel(id, tab) {
+  // פרויקטי עיצוב נפתחים בפאנל הייעודי שלהם (ניהול נפרד מהייבוא)
+  const proj = getProject(id);
+  if (isDesignProject(proj)) { openDesignProjectPanel(id); return; }
   currentProjectId = id;
   currentProjectTab = tab || 'details';
   renderProjectPanel();
@@ -199,6 +202,8 @@ function openProjectPanel(id, tab) {
 function renderProjectPanel() {
   const p = getProject(currentProjectId);
   if (!p) { closePanel('project-panel'); return; }
+  // אם מדובר בפרויקט עיצוב (למשל אחרי עריכת נכס) — לרנדר את הפאנל הייעודי
+  if (isDesignProject(p)) { renderDesignProjectPanel(); return; }
 
   $('#project-panel .panel-title').textContent = p.name;
   $$('#project-tabs .panel-tab').forEach(t => {
@@ -231,7 +236,7 @@ function renderProjectPanel() {
 /** רשימת הקטגוריות הקיימות לבחירה */
 function categoryOptions() {
   const cats = {};
-  S.projects.forEach(p => { if (p.category) cats[p.category] = true; });
+  importProjects().forEach(p => { if (p.category) cats[p.category] = true; });
   return [{ value: '', label: '— ללא —' }]
     .concat(Object.keys(cats).sort((a, b) => a.localeCompare(b, 'he')).map(c => ({ value: c, label: c })))
     .concat([{ value: '__new__', label: '+ קטגוריה חדשה...' }]);
@@ -240,7 +245,7 @@ function categoryOptions() {
 /** רשימת המכולות/משלוחים הקיימים לבחירה */
 function shipmentOptions() {
   const names = {};
-  S.projects.forEach(p => { if (p.shipmentName) names[p.shipmentName] = true; });
+  importProjects().forEach(p => { if (p.shipmentName) names[p.shipmentName] = true; });
   return [{ value: '', label: '— ללא —' }]
     .concat(Object.keys(names).sort().map(n => ({ value: n, label: n })))
     .concat([{ value: '__new__', label: '+ מכולה / משלוח חדש...' }]);
@@ -249,7 +254,7 @@ function shipmentOptions() {
 /** סיכום מכולה משותפת — כל הפרויקטים באותו משלוח, ונפח מצטבר מול הקיבולת */
 function shipmentSummaryHtml(p) {
   if (!p.shipmentName) return '';
-  const group = S.projects.filter(x => !x.completed && x.shipmentName === p.shipmentName);
+  const group = importProjects().filter(x => !x.completed && x.shipmentName === p.shipmentName);
   const total = group.reduce((s, x) => s + projectVolume(x), 0);
   const cap20 = 28, cap40 = 67;
   const rows = group.map(x => {
@@ -299,18 +304,12 @@ function renderProjectDetailsTab(body, p) {
     fieldRowHtml({ label: 'שיוך למכולה', field: 'shipmentName', value: p.shipmentName, type: 'select' }) +
     fieldRowHtml({ label: 'חלקי חילוף / ספייר', field: 'spareParts', value: p.spareParts, type: 'textarea' }) +
     shipmentSummaryHtml(p) +
-    productSpecRows(p) +
-    packagingRows(p) +
     '<div class="field-row"><span class="field-label">נוצר</span><span class="field-value readonly">' +
       esc(fmtDateBoth(p.createdAt) + ' · ' + userDisplay(p.createdBy)) + '</span></div>' +
     filesSectionHtml(p);
 
   wireInlineEdits(body, {
-    getValue: (f) => {
-      if (f.indexOf('spec.') === 0) return (p.productSpec || {})[f.slice(5)];
-      if (f.indexOf('pkg.') === 0) return (p.packaging || {})[f.slice(4)];
-      return p[f];
-    },
+    getValue: (f) => p[f],
     options: (f) => {
       if (f === 'clientId') return clientOptions();
       if (f === 'supplierId') return supplierOptions();
@@ -318,12 +317,9 @@ function renderProjectDetailsTab(body, p) {
       if (f === 'category') return categoryOptions();
       if (f === 'type') return [{ value: 'client', label: 'פרויקט לקוח' }, { value: 'office', label: 'פרויקט משרד' }];
       if (f === 'status') return S.statuses.map(s => ({ value: s, label: s }));
-      if (f.indexOf('pkg.') === 0) return nestedFieldOptions(f);
       return null;
     },
     save: async (f, v) => {
-      if (f.indexOf('spec.') === 0) return saveNestedField(p, 'productSpec', f.slice(5), v);
-      if (f.indexOf('pkg.') === 0) return saveNestedField(p, 'packaging', f.slice(4), v);
       if (f === 'clientId' && v === '__new__') { openAddClientModal((newId) => saveProjectField(p.id, 'clientId', newId)); renderProjectPanel(); return; }
       if (f === 'shipmentName' && v === '__new__') {
         openModal({
@@ -455,54 +451,12 @@ async function saveDevField(p, field, value) {
   } catch (e) { toast(friendlyError(e.code), 'error'); }
 }
 
-/* ================= טאב עיצובים + קבצים ================= */
+/* ================= טאב "עיצוב" בפרויקט ייבוא (חלון לקריאה בלבד) =================
+   ניהול העיצוב עצמו נעשה באזור "עיצובים" הנפרד. כאן רק רואים את פרויקטי
+   העיצוב המקושרים ואת הקבצים הסופיים שסונכרנו אליהם — הפונקציה ב-design.js. */
 
 function renderProjectDesignsTab(body, p) {
-  const designs = p.designs || [];
-  body.innerHTML =
-    '<div class="log-section-title">🎨 עיצובים</div>' +
-    '<div class="card-list">' +
-      (designs.length ? designs.map(d => {
-        const dl = deadlineInfo(d.deadline);
-        const qa = (typeof qaSummary === 'function') ? qaSummary(d) : '';
-        return '<div class="entity-card" data-design-id="' + esc(d.id) + '">' +
-          '<div class="entity-card-top">' +
-          '<span class="entity-icn">' + icon('design') + '</span>' +
-          '<span class="entity-name">' + esc(d.name) + '</span>' +
-          (d.assetType ? '<span class="tag">' + esc(d.assetType) + '</span>' : '') +
-          (d.status ? '<span class="tag tag-status">' + esc(d.status) + '</span>' : '') +
-          (dl.label ? '<span class="tag ' + dl.cls + '">' + dl.label + '</span>' : '') +
-          '</div>' +
-          ((d.assignedTo || qa || d.priority) ? '<div class="entity-meta">' +
-            (d.assignedTo ? '<span>👤 ' + esc(d.assignedTo) + '</span>' : '') +
-            (d.priority ? '<span class="priority-stars">' + stars(d.priority) + '</span>' : '') +
-            (qa ? '<span>' + esc(qa) + '</span>' : '') +
-          '</div>' : '') +
-          '</div>';
-      }).join('') : '<div class="empty-state">אין עדיין עיצובים</div>') +
-    '</div>' +
-    '<div class="log-add" style="margin-top:.9rem">' +
-      '<input type="text" id="new-design-name" placeholder="שם עיצוב חדש...">' +
-      '<button class="btn-gold" id="btn-add-design">+ הוסף</button>' +
-    '</div>';
-
-  body.querySelectorAll('.entity-card').forEach(card => {
-    card.onclick = () => openDesignPanel(p.id, card.dataset.designId);
-  });
-  const addDesign = async () => {
-    const name = $('#new-design-name').value.trim();
-    if (!name) return;
-    try {
-      const res = await api('addDesign', { projectId: p.id, design: { name } });
-      if (res.obj) mergeEntity('project', res.obj);
-      else { p.designs = p.designs || []; p.designs.push({ id: uid(), name, status: '', deadline: '', priority: 0, notes: [], importantInfo: [] }); }
-      toast('העיצוב נוסף ✓', 'success');
-      renderProjectPanel();
-      renderCurrentView();
-    } catch (e) { toast(friendlyError(e.code), 'error'); }
-  };
-  $('#btn-add-design').onclick = addDesign;
-  $('#new-design-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') addDesign(); });
+  renderImportProjectDesignWindow(body, p);
 }
 
 function filesSectionHtml(p) {

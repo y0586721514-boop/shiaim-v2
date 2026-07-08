@@ -21,6 +21,11 @@ const isBoss = () => S.role === 'boss';
 /* ================= חיפושים ================= */
 
 function getProject(id)  { return S.projects.find(p => p.id === id); }
+
+/* פרויקטי עיצוב מנוהלים בנפרד מפרויקטי הייבוא (אותה ישות, שדה kind) */
+function isDesignProject(p) { return !!p && p.kind === 'design'; }
+function importProjects() { return S.projects.filter(p => p.kind !== 'design'); }
+function designProjects() { return S.projects.filter(p => p.kind === 'design'); }
 function getIdea(id)     { return S.ideas.find(i => i.id === id); }
 function getClient(id)   { return S.clients.find(c => c.id === id); }
 function getSupplier(id) { return S.suppliers.find(s => s.id === id); }
@@ -139,11 +144,13 @@ function updateChangesBadge() {
 }
 
 function updateNavCounts() {
-  const activeProjects = S.projects.filter(p => !p.completed).length;
+  const activeProjects = importProjects().filter(p => !p.completed).length;
+  const activeDesign = designProjects().filter(p => !p.completed).length;
   const openIdeas = S.ideas.filter(i => !i.archived).length;
-  const np = $('#nav-count-projects'), ni = $('#nav-count-ideas');
+  const np = $('#nav-count-projects'), ni = $('#nav-count-ideas'), nd = $('#nav-count-design');
   if (np) np.textContent = activeProjects || '';
   if (ni) ni.textContent = openIdeas || '';
+  if (nd) nd.textContent = activeDesign || '';
 }
 
 /* ================= ביצוע-עם-ביטול (Undo) =================

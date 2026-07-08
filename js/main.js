@@ -8,6 +8,7 @@ const VIEWS = {
   today: renderTodayView,
   projects: renderProjectsView,
   ideas: renderIdeasView,
+  design: renderDesignProjectsView,
   clients: renderClientsView,
   suppliers: renderSuppliersView,
   containers: renderContainersView,
@@ -34,7 +35,7 @@ function updateNavHighlight() {
   $$('.sidebar-nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
   $$('.bottom-nav-item').forEach(b => {
     const v = b.dataset.view;
-    b.classList.toggle('active', v === S.view || (v === 'more' && (S.view === 'suppliers' || S.view === 'settings' || S.view === 'containers')));
+    b.classList.toggle('active', v === S.view || (v === 'more' && (S.view === 'suppliers' || S.view === 'settings' || S.view === 'containers' || S.view === 'design')));
   });
 }
 
@@ -44,6 +45,7 @@ function openMoreMenu() {
     title: 'עוד',
     maxWidth: '320px',
     bodyHtml:
+      '<button class="btn-secondary btn-block" data-goto="design">🎨 עיצובים</button>' +
       '<button class="btn-secondary btn-block" data-goto="suppliers">📦 מוצרים וספקים</button>' +
       '<button class="btn-secondary btn-block" data-goto="containers">🚢 מכולות</button>' +
       '<button class="btn-secondary btn-block" data-goto="settings">⚙️ הגדרות</button>',
@@ -62,6 +64,7 @@ function updateFab() {
     today: () => openAddProjectModal(),
     projects: () => openAddProjectModal(),
     ideas: () => openAddIdeaModal(),
+    design: () => openAddDesignProjectModal(),
     clients: () => openAddClientModal(),
     suppliers: () => openAddSupplierModal(),
     containers: null,
@@ -69,7 +72,7 @@ function updateFab() {
   };
   const titles = {
     today: 'פרויקט חדש', projects: 'פרויקט חדש', ideas: 'רעיון חדש',
-    clients: 'לקוח חדש', suppliers: 'ספק חדש'
+    design: 'פרויקט עיצוב חדש', clients: 'לקוח חדש', suppliers: 'ספק חדש'
   };
   const action = actions[S.view];
   fab.classList.toggle('hidden', !action);

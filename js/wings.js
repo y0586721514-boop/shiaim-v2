@@ -53,7 +53,7 @@ function todayDateLabel() {
 function renderTodayView() {
   const container = $('#view-container');
   const today = todayStr();
-  const active = S.projects.filter(p => !p.completed);
+  const active = importProjects().filter(p => !p.completed);
 
   const overdue = active.filter(p => p.deadline && p.deadline < today && !isAlertDismissed(p)).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
   const stuck = active.filter(p => !p.deadline && daysSince(p.updatedAt) >= 7 && !isAlertDismissed(p));
@@ -71,7 +71,7 @@ function renderTodayView() {
 
   const newChanges = unseenChanges().slice(0, 8);
   const monthStart = today.slice(0, 8) + '01';
-  const doneThisMonth = S.projects.filter(p => p.completed && p.completedAt && p.completedAt.slice(0, 10) >= monthStart).length;
+  const doneThisMonth = importProjects().filter(p => p.completed && p.completedAt && p.completedAt.slice(0, 10) >= monthStart).length;
   const openIdeas = S.ideas.filter(i => !i.archived).length;
   const upcomingArrivals = active.filter(p => p.etaIsrael && p.etaIsrael >= today).length;
 
@@ -251,7 +251,7 @@ const CONT_CAP20 = 28, CONT_CAP40 = 67;
 
 function renderContainersView() {
   const container = $('#view-container');
-  const active = S.projects.filter(p => !p.completed);
+  const active = importProjects().filter(p => !p.completed);
 
   const groups = {};
   active.forEach(p => { if (p.shipmentName) { (groups[p.shipmentName] = groups[p.shipmentName] || []).push(p); } });
@@ -846,10 +846,10 @@ function renderSuppliersList(body) {
 
 function renderProductCatalog(body) {
   const cats = {};
-  S.projects.forEach(p => { if (p.category) cats[p.category] = true; });
+  importProjects().forEach(p => { if (p.category) cats[p.category] = true; });
   const catList = Object.keys(cats).sort((a, b) => a.localeCompare(b, 'he'));
 
-  let products = S.projects.filter(p => !p.completed);
+  let products = importProjects().filter(p => !p.completed);
   if (catalogCategory) products = products.filter(p => (p.category || '') === catalogCategory);
   if (catalogSearch) {
     const q = catalogSearch.toLowerCase();

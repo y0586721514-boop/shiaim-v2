@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="app.css?v=2.13.0">
+  <link rel="stylesheet" href="app.css?v=2.14.0">
 </head>
 <body>
 
@@ -70,6 +70,7 @@
       <button class="sidebar-nav-item" data-view="today"><span class="nav-icn" data-icon="today"></span><span class="nav-label">היום</span></button>
       <button class="sidebar-nav-item" data-view="projects"><span class="nav-icn" data-icon="projects"></span><span class="nav-label">פרויקטים</span><span class="nav-count" id="nav-count-projects"></span></button>
       <button class="sidebar-nav-item" data-view="ideas"><span class="nav-icn" data-icon="ideas"></span><span class="nav-label">רעיונות</span><span class="nav-count" id="nav-count-ideas"></span></button>
+      <button class="sidebar-nav-item" data-view="design"><span class="nav-icn" data-icon="design"></span><span class="nav-label">עיצובים</span><span class="nav-count" id="nav-count-design"></span></button>
       <button class="sidebar-nav-item" data-view="clients"><span class="nav-icn" data-icon="clients"></span><span class="nav-label">לקוחות</span></button>
       <button class="sidebar-nav-item" data-view="suppliers"><span class="nav-icn" data-icon="suppliers"></span><span class="nav-label">מוצרים וספקים</span></button>
       <button class="sidebar-nav-item" data-view="containers"><span class="nav-icn" data-icon="truck"></span><span class="nav-label">מכולות</span></button>
@@ -120,13 +121,23 @@
   <div class="panel-tabs" id="project-tabs">
     <button class="panel-tab active" data-tab="details">פרטים</button>
     <button class="panel-tab" data-tab="development">פיתוח</button>
-    <button class="panel-tab" data-tab="designs">עיצובים</button>
+    <button class="panel-tab" data-tab="designs">עיצוב</button>
     <button class="panel-tab" data-tab="documents">מסמכים</button>
     <button class="panel-tab" data-tab="calculator">מחשבון</button>
     <button class="panel-tab" data-tab="notes">הערות</button>
   </div>
   <div class="panel-body" id="project-panel-body"></div>
   <div class="panel-footer" id="project-panel-footer"></div>
+</div>
+
+<!-- ============ פאנל פרויקט עיצוב ============ -->
+<div id="design-project-panel" class="center-panel">
+  <div class="panel-header">
+    <button class="btn-panel-close" data-close="design-project-panel">✕</button>
+    <div class="panel-title">פרויקט עיצוב</div>
+  </div>
+  <div class="panel-body" id="design-project-panel-body"></div>
+  <div class="panel-footer" id="design-project-panel-footer"></div>
 </div>
 
 <!-- ============ פאנל עיצוב ============ -->
@@ -184,20 +195,20 @@
 <!-- ============ מודלים ============ -->
 <div id="modal-root"></div>
 
-<script src="js/config.js?v=2.13.0"></script>
-<script src="js/util.js?v=2.13.0"></script>
-<script src="js/api.js?v=2.13.0"></script>
-<script src="js/state.js?v=2.13.0"></script>
-<script src="js/panels.js?v=2.13.0"></script>
-<script src="js/projects.js?v=2.13.0"></script>
-<script src="js/design.js?v=2.13.0"></script>
-<script src="js/documents.js?v=2.13.0"></script>
-<script src="js/calculator.js?v=2.13.0"></script>
-<script src="js/wings.js?v=2.13.0"></script>
-<script src="js/settings.js?v=2.13.0"></script>
+<script src="js/config.js?v=2.14.0"></script>
+<script src="js/util.js?v=2.14.0"></script>
+<script src="js/api.js?v=2.14.0"></script>
+<script src="js/state.js?v=2.14.0"></script>
+<script src="js/panels.js?v=2.14.0"></script>
+<script src="js/projects.js?v=2.14.0"></script>
+<script src="js/design.js?v=2.14.0"></script>
+<script src="js/documents.js?v=2.14.0"></script>
+<script src="js/calculator.js?v=2.14.0"></script>
+<script src="js/wings.js?v=2.14.0"></script>
+<script src="js/settings.js?v=2.14.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="js/import.js?v=2.13.0"></script>
-<script src="js/smart-import.js?v=2.13.0"></script>
-<script src="js/main.js?v=2.13.0"></script>
+<script src="js/import.js?v=2.14.0"></script>
+<script src="js/smart-import.js?v=2.14.0"></script>
+<script src="js/main.js?v=2.14.0"></script>
 </body>
 </html>

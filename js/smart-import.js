@@ -72,7 +72,7 @@ function siMatchSupplier(name) {
 function miMatchExisting(name) {
   if (!name) return null;
   const n = String(name).trim().toLowerCase();
-  return S.projects.find(p => !p.completed && p.name && (
+  return importProjects().find(p => !p.completed && p.name && (
     p.name.toLowerCase() === n ||
     p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase())
   )) || null;
@@ -81,7 +81,7 @@ function miMatchExisting(name) {
 function miItemName(it) { return (it.model || it.desc || '').trim() || 'מוצר'; }
 
 function miExistingSelectHtml(idx, preId) {
-  const opts = S.projects.filter(p => !p.completed)
+  const opts = importProjects().filter(p => !p.completed)
     .sort((a, b) => a.name.localeCompare(b.name, 'he'))
     .map(p => '<option value="' + esc(p.id) + '"' + (p.id === preId ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('');
   return '<select class="form-select mi-existing" data-idx="' + idx + '"><option value="">— בחר פרויקט —</option>' + opts + '</select>';

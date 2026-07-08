@@ -829,6 +829,27 @@ a { color: var(--navy-light); }
 .qa-st.on.no { background: var(--red); border-color: var(--red); color: #fff; }
 .qa-st.on.na { background: var(--text-muted); border-color: var(--text-muted); color: #fff; }
 
+/* ================= אזור העיצובים ================= */
+.entity-card-top { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.entity-icn { display: inline-flex; align-items: center; color: var(--gold-dark); }
+.entity-icn svg { width: 18px; height: 18px; }
+.entity-meta { display: flex; flex-wrap: wrap; gap: .3rem .8rem; margin-top: .4rem; font-size: .82rem; color: var(--text-sec); }
+.entity-meta > span { display: inline-flex; align-items: center; gap: .25rem; }
+
+.dp-list { margin-top: .6rem; }
+.dp-card { cursor: pointer; }
+.dp-linked { color: var(--navy); font-weight: 600; }
+.dp-unlinked { color: var(--text-muted); }
+.dp-qa-warn { color: var(--red); font-weight: 700; }
+.dp-stale { color: var(--gold-dark); font-weight: 700; }
+.dp-stale-strip {
+  background: rgba(197, 154, 62, .14); border: 1px solid var(--gold);
+  color: var(--gold-dark); font-weight: 700; padding: .6rem .9rem;
+  border-radius: var(--radius); margin: .6rem 0;
+}
+.dp-copy-check { display: flex; align-items: center; gap: .5rem; font-size: .9rem; color: var(--text-sec); margin-top: .3rem; cursor: pointer; }
+.dp-link { cursor: pointer; }
+
 /* ================= מחשבון ייבוא ================= */
 
 .calc-wrap { display: flex; flex-direction: column; gap: .5rem; }

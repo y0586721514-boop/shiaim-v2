@@ -112,6 +112,7 @@ function openMultiImportModal(file, ex, supInfo) {
 
   const rows = items.map((it, idx) => {
     const match = miMatchExisting(miItemName(it));
+    const isSpare = /spare|备件|配件|accessor|spare\s*part/i.test(miItemName(it) + ' ' + (it.desc || ''));
     const qty = ex.type === 'packing' ? (it.pcs || 0) : (it.qty || 0);
     return (
       '<div class="mi-row" data-idx="' + idx + '">' +
@@ -125,8 +126,9 @@ function openMultiImportModal(file, ex, supInfo) {
           '</div>' +
         '</div>' +
         '<div class="mi-target">' +
-          '<label><input type="radio" name="mi-t-' + idx + '" value="new"' + (match ? '' : ' checked') + '> חדש</label>' +
-          '<label><input type="radio" name="mi-t-' + idx + '" value="existing"' + (match ? ' checked' : '') + '> קיים</label>' +
+          '<label><input type="radio" name="mi-t-' + idx + '" value="new"' + (!match && !isSpare ? ' checked' : '') + '> חדש</label>' +
+          '<label><input type="radio" name="mi-t-' + idx + '" value="existing"' + (match && !isSpare ? ' checked' : '') + '> קיים</label>' +
+          '<label title="יצורף לחלקי החילוף של המוצר שמעליו"><input type="radio" name="mi-t-' + idx + '" value="spare"' + (isSpare ? ' checked' : '') + '> חלק חילוף</label>' +
           '<label><input type="radio" name="mi-t-' + idx + '" value="skip"> דלג</label>' +
           miExistingSelectHtml(idx, match ? match.id : '') +
         '</div>' +
@@ -146,6 +148,7 @@ function openMultiImportModal(file, ex, supInfo) {
           '<input type="text" id="mi-shipment-new" class="form-input hidden" placeholder="שם המכולה החדשה" value="' + esc(ex.docNo || '') + '"></div>' +
       '</div>' +
       (infoBits.length ? '<label style="display:block;margin:.2rem 0 .4rem"><input type="checkbox" id="mi-update-sup" checked> למלא את פרטי הספק (נמל/מייל/אתר/כתובת) מהמסמך</label>' : '') +
+      '<label style="display:block;margin:.2rem 0 .4rem"><input type="checkbox" id="mi-translate" checked> 🌐 תרגם שמות מוצרים ופרטי ספק לעברית</label>' +
       '<div class="calc-group-title">מוצרים שזוהו — בחר לכל אחד יעד</div>' +
       '<div class="mi-list">' + rows + '</div>' +
       (ex.hsCodes && ex.hsCodes.length ? '<div class="form-hint">HS Codes: ' + ex.hsCodes.map(esc).join(', ') + '</div>' : '') +
@@ -174,6 +177,7 @@ function openMultiImportModal(file, ex, supInfo) {
       back.querySelector('#mi-apply').onclick = async () => {
         const supplierChoice = supSel.value;
         const updateSup = back.querySelector('#mi-update-sup') ? back.querySelector('#mi-update-sup').checked : false;
+        const translate = back.querySelector('#mi-translate') ? back.querySelector('#mi-translate').checked : false;
         let shipmentName = shipSel.value;
         if (shipmentName === '__new__') shipmentName = (shipNew.value || '').trim();
         else if (shipmentName === '') shipmentName = '';
@@ -189,7 +193,7 @@ function openMultiImportModal(file, ex, supInfo) {
 
         if (!plan.length) { toast('לא נבחר אף מוצר לייבוא', 'error'); return; }
         close();
-        await applyMultiImport(file, ex, plan, { supplierChoice, supInfo, updateSup, shipmentName, doUpload });
+        await applyMultiImport(file, ex, plan, { supplierChoice, supInfo, updateSup, translate, shipmentName, doUpload });
       };
     }
   });
@@ -242,9 +246,51 @@ async function applyMultiImport(file, ex, plan, opts) {
     }
     opts.supplierId = supplierId;
 
+    // --- תרגום לעברית ---
+    if (opts.translate) {
+      // שמות מוצרים חדשים
+      const newRows = plan.filter(r => r.target === 'new');
+      if (newRows.length) {
+        const heNames = await translateToHebrew(newRows.map(r => r.name));
+        newRows.forEach((r, i) => { r.nameOriginal = r.name; r.name = (heNames[i] || r.name); });
+      }
+      // שם + כתובת ספק
+      if (supplierId) {
+        const sup = getSupplier(supplierId);
+        if (sup) {
+          const toTr = [];
+          if (sup.name && !sup.nameHe) toTr.push(['nameHe', sup.name]);
+          if (sup.address && !sup.addressHe) toTr.push(['addressHe', sup.address]);
+          if (toTr.length) {
+            const trs = await translateToHebrew(toTr.map(t => t[1]));
+            for (let i = 0; i < toTr.length; i++) {
+              sup[toTr[i][0]] = trs[i];
+              try { await api('updateField', { entity: 'supplier', id: sup.id, field: toTr[i][0], value: trs[i] }); } catch (e) {}
+            }
+          }
+        }
+      }
+    }
+
     if (opts.doUpload && !IS_DEMO) { try { base64 = await fileToBase64(file); } catch (e) { base64 = null; } }
 
+    let lastProject = null;
     for (const row of plan) {
+      // חלק חילוף — מצורף למוצר הקודם
+      if (row.target === 'spare') {
+        if (lastProject) {
+          const it = row.it;
+          const bits = [row.name];
+          const q = ex.type === 'packing' ? it.pcs : it.qty;
+          if (q) bits.push(q + ' יח׳');
+          if (it.hs) bits.push('HS ' + it.hs);
+          const line = bits.join(' · ');
+          lastProject.spareParts = (lastProject.spareParts ? lastProject.spareParts + '\n' : '') + line;
+          try { await api('updateField', { entity: 'project', id: lastProject.id, field: 'spareParts', value: lastProject.spareParts }); } catch (e) {}
+        }
+        continue;
+      }
+
       let project;
       if (row.target === 'existing' && row.existingId) {
         project = getProject(row.existingId);
@@ -259,7 +305,7 @@ async function applyMultiImport(file, ex, plan, opts) {
         updated++;
       } else {
         const obj = {
-          id: uid(), name: row.name, type: 'client',
+          id: uid(), name: row.name, nameOriginal: row.nameOriginal || '', type: 'client',
           status: (S.statuses && S.statuses[0]) || 'בתכנון',
           clientId: '', deadline: '', priority: 0,
           notes: [], importantInfo: [], designs: [], documents: [],
@@ -272,6 +318,7 @@ async function applyMultiImport(file, ex, plan, opts) {
         mergeEntity('project', project);
         created++;
       }
+      lastProject = project;
 
       // העלאת המסמך לפרויקט
       if (opts.doUpload && base64 && !IS_DEMO) {

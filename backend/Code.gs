@@ -37,7 +37,7 @@ var ENTITY_NAMES_HE = { project: 'פרויקט', idea: 'רעיון', client: 'ל
 
 var DEFAULT_STATUSES = [
   'בתכנון', 'בעיצוב ראשוני', 'אושר עיצוב ע"י הלקוח',
-  'בסבב תיקונים', 'נשלח לעיצוב', 'נשלח למפעל לביצוע',
+  'בסבב תיקונים', 'נשלח לעיצוב', 'ממתין להעברת תשלום', 'נשלח למפעל לביצוע',
   'סיים ייצור', 'יצא למשלוח', 'במשלוח אוניה', 'במשלוח אוויר',
   'הגיע לנמל בישראל', 'שוחרר', 'סיום תהליך'
 ];
@@ -77,7 +77,7 @@ function doPost(e) {
     var role = session.role;
 
     var lock = LockService.getScriptLock();
-    var isWrite = !/^(getAll|sync|getChanges|getFiles|exportBackup)$/.test(action);
+    var isWrite = !/^(getAll|sync|getChanges|getFiles|exportBackup|translate)$/.test(action);
     if (isWrite) lock.waitLock(20000);
     try {
       switch (action) {
@@ -87,6 +87,7 @@ function doPost(e) {
         case 'getChanges':    return jsonOut_(handleGetChanges_(data));
         case 'getFiles':      return jsonOut_(handleGetFiles_(data));
         case 'exportBackup':  return jsonOut_(handleExportBackup_());
+        case 'translate':     return jsonOut_(handleTranslate_(data));
 
         // חשבון
         case 'changePassword': return jsonOut_(handleChangePassword_(user, data));
@@ -790,6 +791,23 @@ function handleEnsureFolder_(user, data) {
   } catch (e) {
     return { ok: false, error: 'folder_failed' };
   }
+}
+
+/**
+ * תרגום טקסטים בעזרת LanguageApp המובנה של גוגל (חינם, בלי מפתח).
+ * data: { texts: [..] או text: "..", from: 'en'|'' (זיהוי אוטומטי), to: 'iw' (עברית) }
+ * מחזיר { translations: [..] }.
+ */
+function handleTranslate_(data) {
+  var texts = data.texts || (data.text != null ? [data.text] : []);
+  var from = data.from || '';           // '' = זיהוי שפה אוטומטי
+  var to = data.to || 'iw';             // 'iw' = עברית אצל גוגל
+  var out = texts.map(function (t) {
+    var s = String(t == null ? '' : t).trim();
+    if (!s) return '';
+    try { return LanguageApp.translate(s, from, to); } catch (e) { return s; }
+  });
+  return { ok: true, translations: out };
 }
 
 function handleGetFiles_(data) {

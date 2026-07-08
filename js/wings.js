@@ -770,6 +770,7 @@ function renderSupplierPanel() {
   const body = $('#supplier-panel-body');
   body.innerHTML =
     fieldRowHtml({ label: 'שם המפעל', field: 'name', value: s.name }) +
+    (s.nameHe ? '<div class="field-row"><span class="field-label"></span><span class="field-value readonly date-heb">🌐 ' + esc(s.nameHe) + '</span></div>' : '') +
     fieldRowHtml({ label: 'תחום', field: 'field', value: s.field }) +
     fieldRowHtml({ label: 'איש קשר', field: 'contactName', value: s.contactName }) +
     fieldRowHtml({ label: 'WeChat', field: 'wechat', value: s.wechat }) +
@@ -779,7 +780,9 @@ function renderSupplierPanel() {
     fieldRowHtml({ label: 'אתר', field: 'website', value: s.website }) +
     (s.website ? '<div class="field-row"><span class="field-label"></span><a class="phone-link" style="color:var(--navy-light)" href="' + esc(normalizeUrl(s.website)) + '" target="_blank" rel="noopener">🌐 פתח אתר</a></div>' : '') +
     fieldRowHtml({ label: 'כתובת', field: 'address', value: s.address, type: 'textarea' }) +
+    (s.addressHe ? '<div class="field-row"><span class="field-label"></span><span class="field-value readonly date-heb">🌐 ' + esc(s.addressHe) + '</span></div>' : '') +
     fieldRowHtml({ label: 'נמל ייצוא', field: 'exportPort', value: s.exportPort }) +
+    ((s.name || s.address) && !IS_DEMO ? '<div class="field-row"><span class="field-label"></span><button class="btn-secondary" id="sup-translate" style="padding:.3rem .8rem">🌐 תרגם שם וכתובת לעברית</button></div>' : '') +
     fieldRowHtml({ label: 'הערות', field: 'notes', value: s.notes, type: 'textarea' }) +
     '<div class="form-hint">כדאי לשמור כאן: מחירים אחרונים, איכות, זמני ייצור</div>' +
     supplierProductsHtml(projects);
@@ -789,6 +792,19 @@ function renderSupplierPanel() {
     options: () => null,
     save: (f, v) => updateFieldOptimistic('supplier', s.id, f, v, () => { renderSupplierPanel(); renderCurrentView(); })
   });
+  const trBtn = body.querySelector('#sup-translate');
+  if (trBtn) trBtn.onclick = async () => {
+    trBtn.disabled = true; trBtn.textContent = 'מתרגם...';
+    const items = [], keys = [];
+    if (s.name) { items.push(s.name); keys.push('nameHe'); }
+    if (s.address) { items.push(s.address); keys.push('addressHe'); }
+    try {
+      const tr = await translateToHebrew(items);
+      for (let i = 0; i < keys.length; i++) { s[keys[i]] = tr[i]; await api('updateField', { entity: 'supplier', id: s.id, field: keys[i], value: tr[i] }); }
+      toast('תורגם ✓', 'success');
+    } catch (e) { toast('התרגום נכשל — נסה שוב', 'error'); }
+    renderSupplierPanel();
+  };
   body.querySelectorAll('.related-item').forEach(item => {
     item.onclick = () => openProjectPanel(item.dataset.id);
   });

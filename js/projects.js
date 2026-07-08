@@ -275,6 +275,7 @@ function supplierOptions() {
 function renderProjectDetailsTab(body, p) {
   body.innerHTML =
     fieldRowHtml({ label: 'שם', field: 'name', value: p.name }) +
+    (p.nameOriginal ? '<div class="field-row"><span class="field-label">שם מקורי</span><span class="field-value readonly">' + esc(p.nameOriginal) + '</span></div>' : '') +
     fieldRowHtml({ label: 'לקוח', field: 'clientId', value: p.clientId, display: clientName(p.clientId), type: 'select' }) +
     fieldRowHtml({ label: 'סוג', field: 'type', value: p.type, display: p.type === 'office' ? 'פרויקט משרד' : 'פרויקט לקוח', type: 'select' }) +
     fieldRowHtml({ label: 'סטטוס', field: 'status', value: p.status, type: 'select' }) +
@@ -285,6 +286,7 @@ function renderProjectDetailsTab(body, p) {
     fieldRowHtml({ label: 'כתובת איסוף', field: 'pickupAddress', value: p.pickupAddress, type: 'textarea' }) +
     fieldRowHtml({ label: 'נמל יציאה', field: 'port', value: p.port }) +
     fieldRowHtml({ label: 'שיוך למכולה', field: 'shipmentName', value: p.shipmentName, type: 'select' }) +
+    fieldRowHtml({ label: 'חלקי חילוף / ספייר', field: 'spareParts', value: p.spareParts, type: 'textarea' }) +
     shipmentSummaryHtml(p) +
     '<div class="field-row"><span class="field-label">נוצר</span><span class="field-value readonly">' +
       esc(fmtDateBoth(p.createdAt) + ' · ' + userDisplay(p.createdBy)) + '</span></div>' +

@@ -65,6 +65,16 @@ async function api(action, data = {}, opts = {}) {
   return json;
 }
 
+/** תרגום טקסטים לעברית דרך השרת (LanguageApp). מחזיר מערך מתורגם, או המקור בכשלון. */
+async function translateToHebrew(texts) {
+  const arr = Array.isArray(texts) ? texts : [texts];
+  if (IS_DEMO) return arr;
+  try {
+    const res = await api('translate', { texts: arr, from: '', to: 'iw' }, { noQueue: true });
+    return (res.translations && res.translations.length === arr.length) ? res.translations : arr;
+  } catch (e) { return arr; }
+}
+
 function handleSessionExpired() {
   setToken('');
   saveSession(null);
@@ -207,7 +217,7 @@ function demoSeed() {
   ];
   return {
     users: { yakov: { role: 'boss', displayName: 'יעקב', password: '1234' }, aharon: { role: 'user', displayName: 'אהרון', password: '1234' } },
-    statuses: ['בתכנון', 'בעיצוב ראשוני', 'אושר עיצוב ע"י הלקוח', 'בסבב תיקונים', 'נשלח לעיצוב', 'נשלח למפעל לביצוע', 'סיים ייצור', 'יצא למשלוח', 'במשלוח אוניה', 'במשלוח אוויר', 'הגיע לנמל בישראל', 'שוחרר', 'סיום תהליך'],
+    statuses: ['בתכנון', 'בעיצוב ראשוני', 'אושר עיצוב ע"י הלקוח', 'בסבב תיקונים', 'נשלח לעיצוב', 'ממתין להעברת תשלום', 'נשלח למפעל לביצוע', 'סיים ייצור', 'יצא למשלוח', 'במשלוח אוניה', 'במשלוח אוויר', 'הגיע לנמל בישראל', 'שוחרר', 'סיום תהליך'],
     projects, ideas, clients, suppliers, changes,
     changeCounter: 3, lastSeen: {}
   };

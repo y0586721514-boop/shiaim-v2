@@ -23,19 +23,49 @@ function openGlobalImport() {
     showSpinner(true);
     try {
       const ex = await importExtractFromFile(file);
+      let supInfo = {};
+      try { const wb = await importReadWorkbook(file); supInfo = siSupplierFromRows(importSheetRows(wb)); } catch (e) {}
+      if (!supInfo.name && ex.supplier) supInfo.name = String(ex.supplier).slice(0, 80);
       showSpinner(false);
       if (!ex.items || !ex.items.length) {
-        // אין פירוט פר-מוצר — נופלים חזרה לזרימה של מוצר בודד אם אפשר
         toast('לא זוהו מוצרים נפרדים במסמך. נסה מסמך עם טבלת פריטים.', 'error');
         return;
       }
-      openMultiImportModal(file, ex);
+      openMultiImportModal(file, ex, supInfo);
     } catch (e) {
       showSpinner(false);
       toast('שגיאה בקריאת הקובץ — ודא שזה אקסל/CSV תקין', 'error');
     }
   };
   input.click();
+}
+
+/** חילוץ פרטי הספק מהמסמך: שם, מייל, אתר, נמל ייצוא, כתובת, טלפון, WeChat */
+function siSupplierFromRows(rows) {
+  const text = rows.map(r => r.join(' | ')).join('\n');
+  const info = {};
+  info.name = (importFindVal(rows, /发货人|supplier|seller|exporter|manufacturer|公司名称|shipper/i) || '').slice(0, 80);
+  const em = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i); if (em) info.email = em[0];
+  let ws = text.match(/((?:https?:\/\/)?www\.[a-z0-9.\-]+\.[a-z]{2,}[^\s|]*)/i) || text.match(/((?:https?:\/\/)[a-z0-9.\-]+\.[a-z]{2,}[^\s|]*)/i);
+  if (ws && !/\.(png|jpg|jpeg|gif)$/i.test(ws[1])) info.website = ws[1];
+  info.exportPort = (importFindVal(rows, /port\s*of\s*loading|loading\s*port|装运港|起运港|port\s*of\s*departure/i) || '').slice(0, 40);
+  if (!info.exportPort) {
+    const pm = text.match(/\b(Ningbo|Shenzhen|Shanghai|Yiwu|Qingdao|Guangzhou|Xiamen|Tianjin|Dalian|Foshan|Zhongshan)\b/i);
+    if (pm) info.exportPort = pm[1];
+  }
+  info.address = (importFindVal(rows, /^address|地址|company\s*address/i) || '').slice(0, 120);
+  info.phone = (importFindVal(rows, /^tel|phone|电话|手机|mobile/i) || '').slice(0, 40);
+  info.wechat = (importFindVal(rows, /wechat|微信/i) || '').slice(0, 40);
+  return info;
+}
+
+/** ניחוש התאמה לספק קיים לפי שם */
+function siMatchSupplier(name) {
+  if (!name) return null;
+  const n = name.trim().toLowerCase();
+  return S.suppliers.find(s => s.name && (
+    s.name.toLowerCase() === n || s.name.toLowerCase().includes(n) || n.includes(s.name.toLowerCase())
+  )) || null;
 }
 
 /** ניחוש התאמה לפרויקט קיים לפי שם המוצר */
@@ -57,10 +87,28 @@ function miExistingSelectHtml(idx, preId) {
   return '<select class="form-select mi-existing" data-idx="' + idx + '"><option value="">— בחר פרויקט —</option>' + opts + '</select>';
 }
 
-function openMultiImportModal(file, ex) {
+function openMultiImportModal(file, ex, supInfo) {
+  supInfo = supInfo || {};
   const items = ex.items;
-  const supOpts = supplierOptions().map(o => '<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>').join('');
   const shipOpts = shipmentOptions().map(o => '<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>').join('');
+
+  // בורר ספק — עם התאמה אוטומטית / יצירה מהמסמך
+  const matchSup = siMatchSupplier(supInfo.name);
+  let supOpts = '<option value="">— בחר ספק —</option>';
+  S.suppliers.slice().sort((a, b) => a.name.localeCompare(b.name, 'he')).forEach(s => {
+    supOpts += '<option value="' + esc(s.id) + '"' + (matchSup && matchSup.id === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>';
+  });
+  if (supInfo.name && !matchSup) supOpts += '<option value="__new_from_doc__" selected>➕ צור: ' + esc(supInfo.name) + ' (מהמסמך)</option>';
+  supOpts += '<option value="__new__">+ ספק חדש (ידני)...</option>';
+
+  const infoBits = [];
+  if (supInfo.exportPort) infoBits.push('נמל: ' + supInfo.exportPort);
+  if (supInfo.email) infoBits.push('מייל: ' + supInfo.email);
+  if (supInfo.website) infoBits.push('אתר: ' + supInfo.website);
+  if (supInfo.address) infoBits.push('כתובת: ' + String(supInfo.address).slice(0, 50));
+  const supInfoBox = (supInfo.name || infoBits.length)
+    ? '<div class="form-hint" style="background:var(--surface-2);padding:.5rem .7rem;border-radius:8px">🏭 זוהה מהמסמך: <b>' + esc(supInfo.name || '') + '</b>' + (infoBits.length ? ' · ' + infoBits.map(esc).join(' · ') : '') + '</div>'
+    : '';
 
   const rows = items.map((it, idx) => {
     const match = miMatchExisting(miItemName(it));
@@ -91,11 +139,13 @@ function openMultiImportModal(file, ex) {
     maxWidth: '640px',
     bodyHtml:
       '<div class="form-hint" style="margin-bottom:.6rem">קובץ: ' + esc(file.name) + (ex.docNo ? ' · מסמך ' + esc(ex.docNo) : '') + '</div>' +
+      supInfoBox +
       '<div class="form-grid">' +
         '<div class="form-group"><label class="form-label">ספק / מפעל (לכל המוצרים)</label><select id="mi-supplier" class="form-select">' + supOpts + '</select></div>' +
         '<div class="form-group"><label class="form-label">מכולה / משלוח (לכל המוצרים)</label><select id="mi-shipment" class="form-select">' + shipOpts + '</select>' +
           '<input type="text" id="mi-shipment-new" class="form-input hidden" placeholder="שם המכולה החדשה" value="' + esc(ex.docNo || '') + '"></div>' +
       '</div>' +
+      (infoBits.length ? '<label style="display:block;margin:.2rem 0 .4rem"><input type="checkbox" id="mi-update-sup" checked> למלא את פרטי הספק (נמל/מייל/אתר/כתובת) מהמסמך</label>' : '') +
       '<div class="calc-group-title">מוצרים שזוהו — בחר לכל אחד יעד</div>' +
       '<div class="mi-list">' + rows + '</div>' +
       (ex.hsCodes && ex.hsCodes.length ? '<div class="form-hint">HS Codes: ' + ex.hsCodes.map(esc).join(', ') + '</div>' : '') +
@@ -108,18 +158,22 @@ function openMultiImportModal(file, ex) {
       const shipNew = back.querySelector('#mi-shipment-new');
       const toggleShipNew = () => shipNew.classList.toggle('hidden', shipSel.value !== '__new__');
       shipSel.addEventListener('change', toggleShipNew);
-      // ספק חדש דרך המודל הקיים
+      // ספק חדש ידני — עם פרטים מהמסמך כברירת מחדל
       supSel.addEventListener('change', () => {
         if (supSel.value === '__new__') {
-          openAddSupplierModal();
-          supSel.value = '';
+          openAddSupplierModal(supInfo, (newId) => {
+            const opt = document.createElement('option');
+            const ns = getSupplier(newId);
+            opt.value = newId; opt.textContent = ns ? ns.name : 'ספק חדש'; opt.selected = true;
+            supSel.insertBefore(opt, supSel.querySelector('option[value="__new__"]'));
+          });
+          supSel.value = matchSup ? matchSup.id : (supInfo.name ? '__new_from_doc__' : '');
         }
       });
 
       back.querySelector('#mi-apply').onclick = async () => {
-        // ספק
-        let supplierId = supSel.value === '__new__' ? '' : supSel.value;
-        // מכולה
+        const supplierChoice = supSel.value;
+        const updateSup = back.querySelector('#mi-update-sup') ? back.querySelector('#mi-update-sup').checked : false;
         let shipmentName = shipSel.value;
         if (shipmentName === '__new__') shipmentName = (shipNew.value || '').trim();
         else if (shipmentName === '') shipmentName = '';
@@ -135,7 +189,7 @@ function openMultiImportModal(file, ex) {
 
         if (!plan.length) { toast('לא נבחר אף מוצר לייבוא', 'error'); return; }
         close();
-        await applyMultiImport(file, ex, plan, { supplierId, shipmentName, doUpload });
+        await applyMultiImport(file, ex, plan, { supplierChoice, supInfo, updateSup, shipmentName, doUpload });
       };
     }
   });
@@ -161,7 +215,33 @@ async function applyMultiImport(file, ex, plan, opts) {
   showSpinner(true);
   let created = 0, updated = 0, uploaded = 0, base64 = null;
   const target = importDocTarget(ex.type);
+  const supInfo = opts.supInfo || {};
   try {
+    // --- פתרון הספק: יצירה מהמסמך / עדכון פרטים ---
+    let supplierId = opts.supplierChoice;
+    if (supplierId === '__new_from_doc__') {
+      const so = {
+        id: uid(), name: supInfo.name || 'ספק', field: '', contactName: '',
+        wechat: supInfo.wechat || '', phone: supInfo.phone || '', email: supInfo.email || '',
+        website: supInfo.website || '', exportPort: supInfo.exportPort || '', address: supInfo.address || '', notes: ''
+      };
+      S.suppliers.push(so);
+      try { const r = await api('create', { entity: 'supplier', obj: so }); if (r.obj) mergeEntity('supplier', r.obj); } catch (e) {}
+      supplierId = so.id;
+    } else if (supplierId === '__new__' || !supplierId) {
+      supplierId = '';
+    }
+    // מילוי פרטי ספק קיים מהמסמך (רק שדות ריקים)
+    if (supplierId && opts.updateSup) {
+      const sup = getSupplier(supplierId);
+      if (sup) {
+        for (const k of ['exportPort', 'email', 'website', 'address', 'phone', 'wechat']) {
+          if (supInfo[k] && !sup[k]) { sup[k] = supInfo[k]; try { await api('updateField', { entity: 'supplier', id: sup.id, field: k, value: supInfo[k] }); } catch (e) {} }
+        }
+      }
+    }
+    opts.supplierId = supplierId;
+
     if (opts.doUpload && !IS_DEMO) { try { base64 = await fileToBase64(file); } catch (e) { base64 = null; } }
 
     for (const row of plan) {

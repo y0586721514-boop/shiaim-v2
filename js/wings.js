@@ -774,6 +774,12 @@ function renderSupplierPanel() {
     fieldRowHtml({ label: 'איש קשר', field: 'contactName', value: s.contactName }) +
     fieldRowHtml({ label: 'WeChat', field: 'wechat', value: s.wechat }) +
     fieldRowHtml({ label: 'טלפון', field: 'phone', value: s.phone, type: 'tel' }) +
+    fieldRowHtml({ label: 'אימייל', field: 'email', value: s.email, type: 'email' }) +
+    (s.email ? '<div class="field-row"><span class="field-label"></span><a class="phone-link" style="color:var(--navy-light)" href="mailto:' + esc(String(s.email).trim()) + '">✉️ שלח מייל</a></div>' : '') +
+    fieldRowHtml({ label: 'אתר', field: 'website', value: s.website }) +
+    (s.website ? '<div class="field-row"><span class="field-label"></span><a class="phone-link" style="color:var(--navy-light)" href="' + esc(normalizeUrl(s.website)) + '" target="_blank" rel="noopener">🌐 פתח אתר</a></div>' : '') +
+    fieldRowHtml({ label: 'כתובת', field: 'address', value: s.address, type: 'textarea' }) +
+    fieldRowHtml({ label: 'נמל ייצוא', field: 'exportPort', value: s.exportPort }) +
     fieldRowHtml({ label: 'הערות', field: 'notes', value: s.notes, type: 'textarea' }) +
     '<div class="form-hint">כדאי לשמור כאן: מחירים אחרונים, איכות, זמני ייצור</div>' +
     supplierProductsHtml(projects);
@@ -848,18 +854,24 @@ function deleteSupplierFlow(id) {
   });
 }
 
-function openAddSupplierModal() {
+function openAddSupplierModal(prefill, onDone) {
+  prefill = prefill || {};
+  const pv = (k) => esc(prefill[k] || '');
   openModal({
     title: 'ספק / מפעל חדש',
     bodyHtml:
-      '<div class="form-group"><label class="form-label">שם המפעל *</label><input type="text" id="as-name" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">שם המפעל *</label><input type="text" id="as-name" class="form-input" value="' + pv('name') + '"></div>' +
       '<div class="form-grid">' +
-        '<div class="form-group"><label class="form-label">תחום</label><input type="text" id="as-field" class="form-input" placeholder="צעצועים / אקריליק / אריזות..."></div>' +
-        '<div class="form-group"><label class="form-label">איש קשר</label><input type="text" id="as-contact" class="form-input"></div>' +
-        '<div class="form-group"><label class="form-label">WeChat</label><input type="text" id="as-wechat" class="form-input"></div>' +
-        '<div class="form-group"><label class="form-label">טלפון</label><input type="tel" id="as-phone" class="form-input"></div>' +
+        '<div class="form-group"><label class="form-label">תחום</label><input type="text" id="as-field" class="form-input" placeholder="צעצועים / אקריליק / אריזות..." value="' + pv('field') + '"></div>' +
+        '<div class="form-group"><label class="form-label">איש קשר</label><input type="text" id="as-contact" class="form-input" value="' + pv('contactName') + '"></div>' +
+        '<div class="form-group"><label class="form-label">WeChat</label><input type="text" id="as-wechat" class="form-input" value="' + pv('wechat') + '"></div>' +
+        '<div class="form-group"><label class="form-label">טלפון</label><input type="tel" id="as-phone" class="form-input" value="' + pv('phone') + '"></div>' +
+        '<div class="form-group"><label class="form-label">אימייל</label><input type="email" id="as-email" class="form-input" value="' + pv('email') + '"></div>' +
+        '<div class="form-group"><label class="form-label">אתר</label><input type="text" id="as-website" class="form-input" value="' + pv('website') + '"></div>' +
+        '<div class="form-group"><label class="form-label">נמל ייצוא בסין</label><input type="text" id="as-port" class="form-input" placeholder="Ningbo / Shenzhen..." value="' + pv('exportPort') + '"></div>' +
       '</div>' +
-      '<div class="form-group"><label class="form-label">הערות</label><textarea id="as-notes" class="form-textarea" placeholder="מחירים, איכות, זמני ייצור..."></textarea></div>',
+      '<div class="form-group"><label class="form-label">כתובת</label><textarea id="as-address" class="form-textarea">' + pv('address') + '</textarea></div>' +
+      '<div class="form-group"><label class="form-label">הערות</label><textarea id="as-notes" class="form-textarea" placeholder="מחירים, איכות, זמני ייצור...">' + pv('notes') + '</textarea></div>',
     footerHtml: '<button class="btn-gold" id="as-submit">הוסף ספק</button><button class="btn-secondary btn-modal-close">ביטול</button>',
     onOpen(back, close) {
       back.querySelector('#as-submit').onclick = async () => {
@@ -871,6 +883,10 @@ function openAddSupplierModal() {
           contactName: back.querySelector('#as-contact').value.trim(),
           wechat: back.querySelector('#as-wechat').value.trim(),
           phone: back.querySelector('#as-phone').value.trim(),
+          email: back.querySelector('#as-email').value.trim(),
+          website: back.querySelector('#as-website').value.trim(),
+          exportPort: back.querySelector('#as-port').value.trim(),
+          address: back.querySelector('#as-address').value.trim(),
           notes: back.querySelector('#as-notes').value.trim()
         };
         close();
@@ -879,6 +895,7 @@ function openAddSupplierModal() {
           const res = await api('create', { entity: 'supplier', obj });
           if (res.obj) mergeEntity('supplier', res.obj);
           toast('הספק נוסף ✓', 'success');
+          if (typeof onDone === 'function') onDone(obj.id);
           renderCurrentView();
         } catch (e) {
           removeEntity('supplier', obj.id);

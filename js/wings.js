@@ -57,13 +57,14 @@ function renderTodayView() {
     '</div>' +
 
     '<div class="kpi-row">' +
-      kpiCard('projects', active.length, 'פרויקטים פעילים', 'ink') +
-      kpiCard('alert', attention, 'דורשים טיפול', attention ? 'red' : 'ink') +
-      kpiCard('truck', upcomingArrivals, 'הגעות צפויות', 'gold') +
-      kpiCard('check', doneThisMonth, 'הסתיימו החודש', 'green') +
+      kpiCard('projects', active.length, 'פרויקטים פעילים', 'ink', 'projects-active') +
+      kpiCard('alert', attention, 'דורשים טיפול', attention ? 'red' : 'ink', 'attention') +
+      kpiCard('truck', upcomingArrivals, 'הגעות צפויות', 'gold', 'containers') +
+      kpiCard('check', doneThisMonth, 'הסתיימו החודש', 'green', 'projects-done') +
     '</div>';
 
   // דורש תשומת לב
+  html += '<div id="dash-attention"></div>';
   html += dashSection('alert', 'דורש תשומת לב', attention ? attention + '' : '');
   if (!attention) {
     html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
@@ -87,8 +88,9 @@ function renderTodayView() {
     html += '</div>';
   }
 
-  // עדכונים אחרונים
-  html += dashSection('bell', 'עדכונים אחרונים', newChanges.length ? newChanges.length + '' : '');
+  // עדכונים אחרונים — עם כפתור "נקה"
+  html += '<div class="dash-section-head">' + icon('bell') + '<span>עדכונים אחרונים</span>' +
+    (newChanges.length ? '<span class="dash-count">' + newChanges.length + '</span><button class="dash-clear-btn" id="clear-updates">נקה</button>' : '') + '</div>';
   if (!newChanges.length) {
     html += '<div class="dash-empty">' + icon('check') + '<span>אין עדכונים חדשים — הכל מעודכן</span></div>';
   } else {
@@ -109,6 +111,26 @@ function renderTodayView() {
   const importBtn = container.querySelector('#global-import-btn');
   if (importBtn) importBtn.onclick = () => { if (typeof openGlobalImport === 'function') openGlobalImport(); };
 
+  // כרטיסי KPI לחיצים
+  container.querySelectorAll('.kpi-card2[data-nav]').forEach(c => {
+    c.addEventListener('click', () => {
+      const nav = c.dataset.nav;
+      if (nav === 'projects-active') { S.showCompleted = false; setView('projects'); }
+      else if (nav === 'projects-done') { S.showCompleted = true; setView('projects'); }
+      else if (nav === 'containers') { setView('containers'); }
+      else if (nav === 'attention') { const el = document.querySelector('#dash-attention'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+
+  // ניקוי עדכונים — מסמן הכל כנצפה
+  const clearBtn = container.querySelector('#clear-updates');
+  if (clearBtn) clearBtn.onclick = () => {
+    S.lastSeen = new Date().toISOString();
+    api('updateLastSeen', { ts: S.lastSeen }).catch(() => {});
+    updateChangesBadge();
+    renderTodayView();
+  };
+
   container.querySelectorAll('.dash-card').forEach(card => {
     card.addEventListener('click', () => {
       const kind = card.dataset.kind, id = card.dataset.id;
@@ -126,9 +148,9 @@ function renderTodayView() {
   });
 }
 
-function kpiCard(iconName, value, label, tone) {
+function kpiCard(iconName, value, label, tone, nav) {
   return (
-    '<div class="kpi-card2 kpi-' + tone + '">' +
+    '<div class="kpi-card2 kpi-' + tone + (nav ? ' kpi-clickable' : '') + '"' + (nav ? ' data-nav="' + nav + '"' : '') + '>' +
       '<span class="kpi-icn">' + icon(iconName) + '</span>' +
       '<span class="kpi-num">' + value + '</span>' +
       '<span class="kpi-lbl">' + esc(label) + '</span>' +

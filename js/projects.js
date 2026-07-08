@@ -208,6 +208,7 @@ function renderProjectPanel() {
 
   const body = $('#project-panel-body');
   if (currentProjectTab === 'details') renderProjectDetailsTab(body, p);
+  else if (currentProjectTab === 'development') renderProjectDevelopmentTab(body, p);
   else if (currentProjectTab === 'designs') renderProjectDesignsTab(body, p);
   else if (currentProjectTab === 'documents') renderProjectDocumentsTab(body, p);
   else if (currentProjectTab === 'calculator') renderProjectCalculatorTab(body, p);
@@ -350,6 +351,72 @@ function renderProjectNotesTab(body, p) {
       } catch (e) { toast(friendlyError(e.code), 'error'); }
     }
   });
+}
+
+/* ================= טאב פיתוח מוצר ================= */
+
+function renderProjectDevelopmentTab(body, p) {
+  const d = p.development || {};
+  const sampleDocs = (p.documents || []).filter(x => x.section === 'sample');
+  body.innerHTML =
+    '<div class="log-section-title">🏭 מפעל והצעת מחיר</div>' +
+    fieldRowHtml({ label: 'מפעל / איתור', field: 'factory', value: d.factory }) +
+    fieldRowHtml({ label: 'הצעת מחיר ($)', field: 'quotePrice', value: d.quotePrice }) +
+    fieldRowHtml({ label: 'נתוני המוצר בהצעה', field: 'quoteProductData', value: d.quoteProductData, type: 'textarea' }) +
+    fieldRowHtml({ label: 'הערות לשינויים ועיצוב אישי', field: 'quoteNotes', value: d.quoteNotes, type: 'textarea' }) +
+
+    '<div class="log-section-title" style="margin-top:1.2rem">🧪 דוגמאות</div>' +
+    fieldRowHtml({ label: 'סטטוס דוגמאות', field: 'sampleStatus', value: d.sampleStatus, type: 'select' }) +
+    fieldRowHtml({ label: 'סטטוס משלוח דוגמאות', field: 'sampleShipStatus', value: d.sampleShipStatus, type: 'select' }) +
+    fieldRowHtml({ label: 'עלות משלוח דוגמאות ($)', field: 'sampleShipCost', value: d.sampleShipCost }) +
+
+    '<div class="log-section-title" style="margin-top:1.1rem">🧾 חשבונית דוגמאות</div>' +
+    '<div class="files-list" id="dev-sample-files">' +
+      (sampleDocs.length ? sampleDocs.map(f =>
+        '<div class="file-row"><span>' + fileIcon(f.mimeType) + '</span>' +
+        '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' +
+        (isBoss() ? '<button class="file-del" data-doc-id="' + esc(f.id) + '">🗑</button>' : '') + '</div>').join('')
+        : '<div style="color:var(--text-muted)">אין עדיין חשבונית דוגמאות</div>') +
+    '</div>' +
+    (IS_DEMO ? '<div class="form-hint">העלאת חשבונית תעבוד אחרי חיבור לשרת</div>' :
+      '<div class="upload-row"><input type="file" id="dev-sample-input" style="display:none"><button class="btn-secondary" id="dev-sample-upload">⬆ העלה חשבונית דוגמאות</button></div>');
+
+  wireInlineEdits(body, {
+    getValue: (f) => (p.development || {})[f],
+    options: (f) => {
+      if (f === 'sampleStatus') return ['לא הוזמנו', 'הוזמנו', 'בייצור', 'נשלחו', 'התקבלו', 'אושרו', 'נדחו'].map(s => ({ value: s, label: s }));
+      if (f === 'sampleShipStatus') return ['—', 'נשלח', 'בדרך', 'הגיע לישראל'].map(s => ({ value: s, label: s }));
+      return null;
+    },
+    save: (f, v) => saveDevField(p, f, v)
+  });
+
+  const inp = body.querySelector('#dev-sample-input');
+  const upBtn = body.querySelector('#dev-sample-upload');
+  if (upBtn && inp) {
+    upBtn.onclick = () => { inp.value = ''; inp.click(); };
+    inp.onchange = async () => {
+      const f = inp.files[0];
+      if (!f) return;
+      if (f.size > 20 * 1024 * 1024) { toast('הקובץ גדול מדי — עד 20MB', 'error'); return; }
+      await uploadDocument(p, 'sample', 'חשבונית דוגמאות', f);
+    };
+  }
+  body.querySelectorAll('#dev-sample-files .file-del').forEach(b => {
+    b.onclick = () => deleteDocument(p, b.dataset.docId);
+  });
+}
+
+async function saveDevField(p, field, value) {
+  const dev = Object.assign({}, p.development || {});
+  dev[field] = value;
+  p.development = dev;
+  try {
+    const res = await api('updateField', { entity: 'project', id: p.id, field: 'development', value: dev });
+    if (res.obj) mergeEntity('project', res.obj);
+    toast(res.queued ? 'נשמר במכשיר ⏳' : 'נשמר ✓', res.queued ? '' : 'success');
+    renderProjectPanel();
+  } catch (e) { toast(friendlyError(e.code), 'error'); }
 }
 
 /* ================= טאב עיצובים + קבצים ================= */

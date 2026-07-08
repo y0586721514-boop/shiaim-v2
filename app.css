@@ -414,6 +414,15 @@ a { color: var(--navy-light); }
 .kpi-card2.kpi-ink .kpi-icn { color: var(--navy-med); }
 .kpi-num { font-size: 2rem; font-weight: 800; color: var(--navy); line-height: 1; }
 .kpi-lbl { color: var(--text-sec); font-size: .88rem; font-weight: 500; }
+.kpi-card2.kpi-clickable { cursor: pointer; transition: box-shadow var(--transition), transform var(--transition); }
+.kpi-card2.kpi-clickable:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+.dash-clear-btn {
+  margin-inline-start: auto; background: var(--surface-2); color: var(--text-sec);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  font-size: .82rem; font-weight: 600; padding: .2rem .9rem; min-height: 32px;
+}
+.dash-clear-btn:hover { background: var(--border); }
 
 .dash-section-head {
   display: flex; align-items: center; gap: .5rem;

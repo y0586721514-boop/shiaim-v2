@@ -207,6 +207,8 @@ function renderProjectPanel() {
   const body = $('#project-panel-body');
   if (currentProjectTab === 'details') renderProjectDetailsTab(body, p);
   else if (currentProjectTab === 'designs') renderProjectDesignsTab(body, p);
+  else if (currentProjectTab === 'documents') renderProjectDocumentsTab(body, p);
+  else if (currentProjectTab === 'calculator') renderProjectCalculatorTab(body, p);
   else renderProjectNotesTab(body, p);
 
   // Footer

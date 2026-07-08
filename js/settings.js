@@ -124,6 +124,7 @@ function openStatusesModal() {
     title: 'ניהול סטטוסים',
     bodyHtml: '<div class="statuses-list" id="statuses-list"></div>' +
       '<button class="btn-secondary btn-block" id="btn-add-status">+ הוסף סטטוס</button>' +
+      '<button class="btn-secondary btn-block" id="btn-add-shipping-statuses">🚢 הוסף שלבי ייצור ומשלוח מומלצים</button>' +
       '<div class="form-hint">גרור ⠿ לשינוי סדר · שינוי שם מעדכן את כל הפרויקטים</div>',
     footerHtml: '<button class="btn-primary" id="btn-save-statuses">שמור</button><button class="btn-secondary btn-modal-close">ביטול</button>',
     onOpen(back, close) {
@@ -169,6 +170,16 @@ function openStatusesModal() {
         renderList();
         const inputs = listEl.querySelectorAll('input');
         inputs[inputs.length - 1].focus();
+      };
+
+      back.querySelector('#btn-add-shipping-statuses').onclick = () => {
+        const recommended = ['סיים ייצור', 'יצא למשלוח', 'במשלוח אוניה', 'במשלוח אוויר', 'הגיע לנמל בישראל', 'שוחרר', 'סיום תהליך'];
+        let added = 0;
+        recommended.forEach(name => {
+          if (!working.some(w => w.current.trim() === name)) { working.push({ original: null, current: name }); added++; }
+        });
+        renderList();
+        toast(added ? 'נוספו ' + added + ' שלבים — לחץ שמור לסיום' : 'כל השלבים כבר קיימים', added ? 'success' : '');
       };
 
       back.querySelector('#btn-save-statuses').onclick = async () => {

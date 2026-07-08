@@ -10,4 +10,4 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyWQwl7EPRAf4IBlr1d9_FoxLS6Z9ATIogEICkA_FrgwKmf2dsAPlj0ivc2tvDnz-6u/exec';
 
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';

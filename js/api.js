@@ -207,7 +207,7 @@ function demoSeed() {
   ];
   return {
     users: { yakov: { role: 'boss', displayName: 'יעקב', password: '1234' }, aharon: { role: 'user', displayName: 'אהרון', password: '1234' } },
-    statuses: ['בתכנון', 'בעיצוב ראשוני', 'אושר עיצוב ע"י הלקוח', 'בסבב תיקונים', 'נשלח לעיצוב', 'נשלח למפעל לביצוע'],
+    statuses: ['בתכנון', 'בעיצוב ראשוני', 'אושר עיצוב ע"י הלקוח', 'בסבב תיקונים', 'נשלח לעיצוב', 'נשלח למפעל לביצוע', 'סיים ייצור', 'יצא למשלוח', 'במשלוח אוניה', 'במשלוח אוויר', 'הגיע לנמל בישראל', 'שוחרר', 'סיום תהליך'],
     projects, ideas, clients, suppliers, changes,
     changeCounter: 3, lastSeen: {}
   };

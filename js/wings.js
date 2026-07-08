@@ -364,6 +364,7 @@ function clientCardHtml(c) {
       '<div class="entity-meta">' +
         (c.contactName ? '<span>איש קשר: ' + esc(c.contactName) + '</span>' : '') +
         (c.phone ? '<a class="phone-link" href="tel:' + esc(c.phone.replace(/[^\d+]/g, '')) + '">📞 ' + esc(c.phone) + '</a>' : '') +
+        (c.email ? '<a class="phone-link" style="color:var(--navy-light)" href="mailto:' + esc(String(c.email).trim()) + '">✉️ ' + esc(c.email) + '</a>' : '') +
       '</div>' +
     '</div>'
   );
@@ -391,6 +392,8 @@ function renderClientPanel() {
     fieldRowHtml({ label: 'איש קשר', field: 'contactName', value: c.contactName }) +
     fieldRowHtml({ label: 'טלפון', field: 'phone', value: c.phone, type: 'tel' }) +
     (c.phone ? '<div class="field-row"><span class="field-label"></span><a class="phone-link" href="tel:' + esc(String(c.phone).replace(/[^\d+]/g, '')) + '">📞 חייג עכשיו</a></div>' : '') +
+    fieldRowHtml({ label: 'אימייל', field: 'email', value: c.email, type: 'email' }) +
+    (c.email ? '<div class="field-row"><span class="field-label"></span><a class="phone-link" style="color:var(--navy-light)" href="mailto:' + esc(String(c.email).trim()) + '">✉️ שלח מייל ללקוח</a></div>' : '') +
     fieldRowHtml({ label: 'הערות', field: 'notes', value: c.notes, type: 'textarea' }) +
     '<div class="log-section-title" style="margin-top:1.1rem">📋 פרויקטים (' + projects.length + ')</div>' +
     '<div class="related-list">' +
@@ -458,6 +461,7 @@ function openAddClientModal(onDone) {
       '<div class="form-grid">' +
         '<div class="form-group"><label class="form-label">איש קשר</label><input type="text" id="ac-contact" class="form-input"></div>' +
         '<div class="form-group"><label class="form-label">טלפון</label><input type="tel" id="ac-phone" class="form-input"></div>' +
+        '<div class="form-group"><label class="form-label">אימייל</label><input type="email" id="ac-email" class="form-input" placeholder="לשליחת מיילים ללקוח"></div>' +
       '</div>' +
       '<div class="form-group"><label class="form-label">הערות</label><input type="text" id="ac-notes" class="form-input"></div>',
     footerHtml: '<button class="btn-gold" id="ac-submit">הוסף לקוח</button><button class="btn-secondary btn-modal-close">ביטול</button>',
@@ -469,6 +473,7 @@ function openAddClientModal(onDone) {
           id: uid(), name,
           contactName: back.querySelector('#ac-contact').value.trim(),
           phone: back.querySelector('#ac-phone').value.trim(),
+          email: back.querySelector('#ac-email').value.trim(),
           notes: back.querySelector('#ac-notes').value.trim()
         };
         close();

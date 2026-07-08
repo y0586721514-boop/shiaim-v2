@@ -807,6 +807,28 @@ a { color: var(--navy-light); }
 }
 .idea-img-del:hover { background: var(--red); }
 
+/* ================= מפרט / אריזה (details) ================= */
+.spec-details { border: 1px solid var(--border); border-radius: var(--radius); margin: .8rem 0; overflow: hidden; }
+.spec-details > summary { cursor: pointer; padding: .7rem 1rem; font-weight: 700; color: var(--navy); background: var(--surface-2); list-style: none; }
+.spec-details > summary::-webkit-details-marker { display: none; }
+.spec-details > summary::before { content: '▸'; margin-inline-end: .5rem; color: var(--gold-dark); }
+.spec-details[open] > summary::before { content: '▾'; }
+.spec-block { padding: .3rem 1rem .8rem; }
+
+/* ================= צ'קליסט QA לדפוס ================= */
+.qa-block { display: flex; flex-direction: column; gap: .3rem; }
+.qa-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .35rem .2rem; border-bottom: 1px solid var(--border); }
+.qa-label { color: var(--text-sec); font-weight: 600; }
+.qa-states { display: inline-flex; gap: .25rem; flex-shrink: 0; }
+.qa-st {
+  width: 34px; height: 34px; min-height: 34px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted);
+  font-weight: 800; font-size: .95rem;
+}
+.qa-st.on.ok { background: var(--green); border-color: var(--green); color: #fff; }
+.qa-st.on.no { background: var(--red); border-color: var(--red); color: #fff; }
+.qa-st.on.na { background: var(--text-muted); border-color: var(--text-muted); color: #fff; }
+
 /* ================= מחשבון ייבוא ================= */
 
 .calc-wrap { display: flex; flex-direction: column; gap: .5rem; }

@@ -299,12 +299,18 @@ function renderProjectDetailsTab(body, p) {
     fieldRowHtml({ label: 'שיוך למכולה', field: 'shipmentName', value: p.shipmentName, type: 'select' }) +
     fieldRowHtml({ label: 'חלקי חילוף / ספייר', field: 'spareParts', value: p.spareParts, type: 'textarea' }) +
     shipmentSummaryHtml(p) +
+    productSpecRows(p) +
+    packagingRows(p) +
     '<div class="field-row"><span class="field-label">נוצר</span><span class="field-value readonly">' +
       esc(fmtDateBoth(p.createdAt) + ' · ' + userDisplay(p.createdBy)) + '</span></div>' +
     filesSectionHtml(p);
 
   wireInlineEdits(body, {
-    getValue: (f) => p[f],
+    getValue: (f) => {
+      if (f.indexOf('spec.') === 0) return (p.productSpec || {})[f.slice(5)];
+      if (f.indexOf('pkg.') === 0) return (p.packaging || {})[f.slice(4)];
+      return p[f];
+    },
     options: (f) => {
       if (f === 'clientId') return clientOptions();
       if (f === 'supplierId') return supplierOptions();
@@ -312,9 +318,12 @@ function renderProjectDetailsTab(body, p) {
       if (f === 'category') return categoryOptions();
       if (f === 'type') return [{ value: 'client', label: 'פרויקט לקוח' }, { value: 'office', label: 'פרויקט משרד' }];
       if (f === 'status') return S.statuses.map(s => ({ value: s, label: s }));
+      if (f.indexOf('pkg.') === 0) return nestedFieldOptions(f);
       return null;
     },
     save: async (f, v) => {
+      if (f.indexOf('spec.') === 0) return saveNestedField(p, 'productSpec', f.slice(5), v);
+      if (f.indexOf('pkg.') === 0) return saveNestedField(p, 'packaging', f.slice(4), v);
       if (f === 'clientId' && v === '__new__') { openAddClientModal((newId) => saveProjectField(p.id, 'clientId', newId)); renderProjectPanel(); return; }
       if (f === 'shipmentName' && v === '__new__') {
         openModal({
@@ -455,12 +464,21 @@ function renderProjectDesignsTab(body, p) {
     '<div class="card-list">' +
       (designs.length ? designs.map(d => {
         const dl = deadlineInfo(d.deadline);
+        const qa = (typeof qaSummary === 'function') ? qaSummary(d) : '';
         return '<div class="entity-card" data-design-id="' + esc(d.id) + '">' +
-          '<div class="entity-card-top"><span class="entity-name">' + esc(d.name) + '</span>' +
+          '<div class="entity-card-top">' +
+          '<span class="entity-icn">' + icon('design') + '</span>' +
+          '<span class="entity-name">' + esc(d.name) + '</span>' +
+          (d.assetType ? '<span class="tag">' + esc(d.assetType) + '</span>' : '') +
           (d.status ? '<span class="tag tag-status">' + esc(d.status) + '</span>' : '') +
-          (d.priority ? '<span class="priority-stars">' + stars(d.priority) + '</span>' : '') +
           (dl.label ? '<span class="tag ' + dl.cls + '">' + dl.label + '</span>' : '') +
-          '</div></div>';
+          '</div>' +
+          ((d.assignedTo || qa || d.priority) ? '<div class="entity-meta">' +
+            (d.assignedTo ? '<span>👤 ' + esc(d.assignedTo) + '</span>' : '') +
+            (d.priority ? '<span class="priority-stars">' + stars(d.priority) + '</span>' : '') +
+            (qa ? '<span>' + esc(qa) + '</span>' : '') +
+          '</div>' : '') +
+          '</div>';
       }).join('') : '<div class="empty-state">אין עדיין עיצובים</div>') +
     '</div>' +
     '<div class="log-add" style="margin-top:.9rem">' +
@@ -578,19 +596,28 @@ function renderDesignPanel() {
   const body = $('#design-panel-body');
   body.innerHTML =
     fieldRowHtml({ label: 'שם', field: 'name', value: d.name }) +
-    fieldRowHtml({ label: 'סטטוס', field: 'status', value: d.status, type: 'select' }) +
-    fieldRowHtml({ label: 'דדליין', field: 'deadline', value: d.deadline, display: d.deadline ? fmtDate(d.deadline) : '', type: 'date' }) +
+    fieldRowHtml({ label: 'סוג נכס', field: 'assetType', value: d.assetType, type: 'select' }) +
+    fieldRowHtml({ label: 'סטטוס עיצוב', field: 'status', value: d.status, type: 'select' }) +
+    fieldRowHtml({ label: 'מי מטפל', field: 'assignedTo', value: d.assignedTo }) +
+    fieldRowHtml({ label: 'דדליין', field: 'deadline', value: d.deadline, display: d.deadline ? fmtDateBoth(d.deadline) : '', type: 'date' }) +
     priorityRowHtml(d.priority, isBoss()) +
+    fieldRowHtml({ label: 'פרומפט AI', field: 'aiPrompt', value: d.aiPrompt, type: 'textarea' }) +
     designFilesHtml(p, d) +
+    designQAHtml(d) +
     logSectionHtml('importantInfo', d.importantInfo) +
     logSectionHtml('notes', d.notes);
 
   wireInlineEdits(body, {
     getValue: (f) => d[f],
-    options: (f) => f === 'status' ? S.statuses.map(s => ({ value: s, label: s })) : null,
+    options: (f) => {
+      if (f === 'status') return designStatusOptions();
+      if (f === 'assetType') return assetTypeOptions();
+      return null;
+    },
     save: (f, v) => saveDesignField(p.id, d.id, f, v)
   });
   wireDesignFiles(body, p, d);
+  wireDesignQA(body, p, d);
   wirePriority(body, { editable: isBoss(), save: (v) => saveDesignField(p.id, d.id, 'priority', v) });
   wireLogSections(body, {
     save: async (area, text) => {

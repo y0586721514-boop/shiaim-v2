@@ -441,6 +441,33 @@ a { color: var(--navy-light); }
 }
 .dash-empty .icn { color: var(--success); }
 
+/* ================= פוליש רוחבי — כותרות, כרטיסים, תגיות ================= */
+
+.page-title { display: inline-flex; align-items: center; gap: .5rem; }
+.page-title .icn { width: 24px; height: 24px; color: var(--gold-dark); }
+
+.entity-icn { display: inline-flex; align-items: center; color: var(--gold-dark); }
+.entity-icn .icn { width: 20px; height: 20px; }
+
+.row-client { display: inline-flex; align-items: center; gap: .3rem; color: var(--text-sec); }
+.row-client .icn { width: 15px; height: 15px; color: var(--text-muted); }
+
+.row-indicators { display: inline-flex; align-items: center; gap: .35rem; color: var(--text-muted); }
+.row-indicators .icn { width: 16px; height: 16px; }
+
+.tag .icn { width: 14px; height: 14px; margin-inline-end: .25rem; vertical-align: -2px; }
+.tag-eta { background: #F3EEDD; color: var(--gold-dark); border-color: #E5D9B4; }
+
+.search-wrap .search-ico { display: inline-flex; }
+.search-wrap .search-ico .icn { width: 18px; height: 18px; }
+
+/* תאריך עברי — מעומעם, לצד הלועזי */
+.date-heb { color: var(--text-muted); font-weight: 400; font-size: .92em; }
+.date-heb-hint {
+  width: 100%; color: var(--gold-dark); font-size: .85rem; font-weight: 600;
+  margin-top: .3rem; padding-inline-start: .2rem; min-height: 1.1em;
+}
+
 /* ================= פאנלים ================= */
 
 .overlay {

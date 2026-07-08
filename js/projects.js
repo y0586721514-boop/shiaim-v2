@@ -92,7 +92,7 @@ function filtersBarHtml() {
     .map(c => '<option value="' + esc(c.id) + '"' + (f.client === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>').join('');
   return (
     '<div class="filters-bar" id="filters-bar">' +
-      '<div class="search-wrap"><span class="search-ico">🔍</span>' +
+      '<div class="search-wrap"><span class="search-ico">' + icon('search') + '</span>' +
         '<input type="text" id="f-search" class="filter-search" placeholder="חיפוש בשם, בהערות ובעיצובים..." value="' + esc(f.search) + '"></div>' +
       '<select id="f-type" class="filter-select">' +
         '<option value="">כל הסוגים</option>' +
@@ -154,9 +154,10 @@ function projectRowHtml(p) {
   const dl = deadlineInfo(p.deadline);
   const cName = clientName(p.clientId);
   const indicators =
-    ((p.notes || []).length ? '💬' : '') +
-    ((p.importantInfo || []).length ? 'ℹ️' : '') +
-    ((p.designs || []).length ? '🎨' : '');
+    ((p.notes || []).length ? icon('note') : '') +
+    ((p.importantInfo || []).length ? icon('info') : '') +
+    ((p.designs || []).length ? icon('design') : '') +
+    ((p.documents || []).length ? icon('paperclip') : '');
   const designRows = (p.designs || []).map(d => {
     const ddl = deadlineInfo(d.deadline);
     return '<div class="design-subrow" data-design-id="' + esc(d.id) + '">' +
@@ -175,10 +176,10 @@ function projectRowHtml(p) {
         (p.status ? '<span class="tag tag-status">' + esc(p.status) + '</span>' : '') +
       '</div>' +
       '<div class="project-row-meta">' +
-        (cName ? '<span>👤 ' + esc(cName) + '</span>' : '') +
+        (cName ? '<span class="row-client">' + icon('user') + esc(cName) + '</span>' : '') +
         '<span class="tag tag-type-' + esc(p.type) + '">' + (p.type === 'office' ? 'משרד' : 'לקוח') + '</span>' +
-        (dl.label ? '<span class="tag ' + dl.cls + '">' + dl.label + '</span>' : '') +
-        (p.etaIsrael ? '<span class="tag">🚢 הגעה: ' + fmtDate(p.etaIsrael) + '</span>' : '') +
+        (dl.label ? '<span class="tag ' + dl.cls + '">' + esc(dl.label) + '</span>' : '') +
+        (p.etaIsrael ? '<span class="tag tag-eta">' + icon('truck') + 'הגעה · ' + esc(fmtDateBoth(p.etaIsrael)) + '</span>' : '') +
         (indicators ? '<span class="row-indicators">' + indicators + '</span>' : '') +
       '</div>' +
       (designRows ? '<div class="design-subrows">' + designRows + '</div>' : '') +
@@ -243,12 +244,12 @@ function renderProjectDetailsTab(body, p) {
     fieldRowHtml({ label: 'לקוח', field: 'clientId', value: p.clientId, display: clientName(p.clientId), type: 'select' }) +
     fieldRowHtml({ label: 'סוג', field: 'type', value: p.type, display: p.type === 'office' ? 'פרויקט משרד' : 'פרויקט לקוח', type: 'select' }) +
     fieldRowHtml({ label: 'סטטוס', field: 'status', value: p.status, type: 'select' }) +
-    fieldRowHtml({ label: 'דדליין', field: 'deadline', value: p.deadline, display: p.deadline ? fmtDate(p.deadline) : '', type: 'date' }) +
-    fieldRowHtml({ label: 'צפי הגעה לישראל', field: 'etaIsrael', value: p.etaIsrael, display: p.etaIsrael ? fmtDate(p.etaIsrael) : '', type: 'date' }) +
+    fieldRowHtml({ label: 'דדליין', field: 'deadline', value: p.deadline, display: p.deadline ? fmtDateBoth(p.deadline) : '', type: 'date' }) +
+    fieldRowHtml({ label: 'צפי הגעה לישראל', field: 'etaIsrael', value: p.etaIsrael, display: p.etaIsrael ? fmtDateBoth(p.etaIsrael) : '', type: 'date' }) +
     priorityRowHtml(p.priority, isBoss()) +
     fieldRowHtml({ label: 'ספק', field: 'supplierId', value: p.supplierId, display: supplierName(p.supplierId), type: 'select' }) +
     '<div class="field-row"><span class="field-label">נוצר</span><span class="field-value readonly">' +
-      esc(fmtDate(p.createdAt) + ' ע"י ' + userDisplay(p.createdBy)) + '</span></div>' +
+      esc(fmtDateBoth(p.createdAt) + ' · ' + userDisplay(p.createdBy)) + '</span></div>' +
     filesSectionHtml(p);
 
   wireInlineEdits(body, {
@@ -645,6 +646,7 @@ function openAddProjectModal(presets = {}) {
       '</div>',
     footerHtml: '<button class="btn-gold" id="ap-submit">הוסף פרויקט</button><button class="btn-secondary btn-modal-close">ביטול</button>',
     onOpen(back, close) {
+      attachHebrewHint(back.querySelector('#ap-deadline'));
       back.querySelector('#ap-client').addEventListener('change', (e) => {
         if (e.target.value === '__new__') {
           openAddClientModal((newId) => {

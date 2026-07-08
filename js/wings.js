@@ -62,7 +62,7 @@ function renderTodayView() {
     html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
   } else {
     html += '<div class="dash-list">';
-    html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDate(p.deadline), 'clock')).join('');
+    html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDateBoth(p.deadline), 'clock')).join('');
     html += stuck.map(p => attnCard(p.id, 'project', 'amber', p.name, clientName(p.clientId), 'ללא דדליין · ' + daysSince(p.updatedAt) + ' ימים בלי עדכון', 'pause')).join('');
     html += waitingIdeas.map(i => attnCard(i.id, 'idea', 'amber', i.name, '', 'רעיון מחכה להחלטה · ' + daysSince(i.createdAt) + ' ימים', 'ideas')).join('');
     html += '</div>';
@@ -75,8 +75,8 @@ function renderTodayView() {
     html += '<div class="dash-empty">' + icon('calendar') + '<span>אין דדליינים או הגעות בשבוע הקרוב</span></div>';
   } else {
     html += '<div class="dash-list">';
-    html += thisWeek.map(p => attnCard(p.id, 'project', 'ink', p.name, p.status, 'דדליין · ' + fmtDate(p.deadline), 'clock')).join('');
-    html += arrivals.map(p => attnCard(p.id, 'project', 'gold', p.name, clientName(p.clientId), 'צפי הגעה לישראל · ' + fmtDate(p.etaIsrael), 'truck')).join('');
+    html += thisWeek.map(p => attnCard(p.id, 'project', 'ink', p.name, p.status, 'דדליין · ' + fmtDateBoth(p.deadline), 'clock')).join('');
+    html += arrivals.map(p => attnCard(p.id, 'project', 'gold', p.name, clientName(p.clientId), 'צפי הגעה לישראל · ' + fmtDateBoth(p.etaIsrael), 'truck')).join('');
     html += '</div>';
   }
 
@@ -158,7 +158,7 @@ function renderIdeasView() {
 
   container.innerHTML =
     '<div class="page-header"><div class="page-header-text">' +
-      '<span class="page-title">💡 ' + (showIdeasArchive ? 'ארכיון רעיונות' : 'רעיונות') + '</span>' +
+      '<span class="page-title">' + icon('ideas') + (showIdeasArchive ? 'ארכיון רעיונות' : 'רעיונות') + '</span>' +
       '<span class="page-meta">' + list.length + ' רעיונות</span>' +
     '</div><div class="page-actions">' +
       '<button class="btn-secondary" id="toggle-idea-archive">' + (showIdeasArchive ? '← חזרה לרעיונות (' + openCount + ')' : 'ארכיון (' + archCount + ')') + '</button>' +
@@ -182,7 +182,8 @@ function ideaCardHtml(i) {
   return (
     '<div class="entity-card" data-id="' + esc(i.id) + '">' +
       '<div class="entity-card-top">' +
-        '<span class="entity-name">💡 ' + esc(i.name) + '</span>' +
+        '<span class="entity-icn">' + icon('ideas') + '</span>' +
+        '<span class="entity-name">' + esc(i.name) + '</span>' +
         (waiting ? '<span class="tag tag-waiting">מחכה להחלטה</span>' : '') +
         (i.archived ? '<span class="tag tag-archived">בארכיון</span>' : '') +
       '</div>' +
@@ -207,7 +208,7 @@ function openIdeaPanel(id) {
 function renderIdeaPanel() {
   const i = getIdea(currentIdeaId);
   if (!i) { closePanel('idea-panel'); return; }
-  $('#idea-panel .panel-title').textContent = '💡 ' + i.name;
+  $('#idea-panel .panel-title').innerHTML = icon('ideas') + ' ' + esc(i.name);
 
   const body = $('#idea-panel-body');
   body.innerHTML =
@@ -464,7 +465,7 @@ function renderClientsView() {
   const list = S.clients.slice().sort((a, b) => a.name.localeCompare(b.name, 'he'));
   container.innerHTML =
     '<div class="page-header"><div class="page-header-text">' +
-      '<span class="page-title">👤 לקוחות</span>' +
+      '<span class="page-title">' + icon('clients') + 'לקוחות</span>' +
       '<span class="page-meta">' + list.length + ' לקוחות</span>' +
     '</div><div class="page-actions">' +
       '<button class="btn-gold" id="btn-add-client">+ לקוח חדש</button>' +
@@ -486,6 +487,7 @@ function clientCardHtml(c) {
   return (
     '<div class="entity-card" data-id="' + esc(c.id) + '">' +
       '<div class="entity-card-top">' +
+        '<span class="entity-icn">' + icon('clients') + '</span>' +
         '<span class="entity-name">' + esc(c.name) + '</span>' +
         (projCount ? '<span class="tag tag-status">' + projCount + ' פרויקטים פעילים</span>' : '') +
         (ideaCount ? '<span class="tag tag-waiting">' + ideaCount + ' רעיונות</span>' : '') +
@@ -510,7 +512,7 @@ function openClientPanel(id) {
 function renderClientPanel() {
   const c = getClient(currentClientId);
   if (!c) { closePanel('client-panel'); return; }
-  $('#client-panel .panel-title').textContent = '👤 ' + c.name;
+  $('#client-panel .panel-title').innerHTML = icon('clients') + ' ' + esc(c.name);
 
   const projects = projectsOfClient(c.id).sort((a, b) => (a.completed ? 1 : 0) - (b.completed ? 1 : 0));
   const ideas = ideasOfClient(c.id);
@@ -631,7 +633,7 @@ function renderSuppliersView() {
   const list = S.suppliers.slice().sort((a, b) => a.name.localeCompare(b.name, 'he'));
   container.innerHTML =
     '<div class="page-header"><div class="page-header-text">' +
-      '<span class="page-title">📦 מוצרים וספקים</span>' +
+      '<span class="page-title">' + icon('suppliers') + 'מוצרים וספקים</span>' +
       '<span class="page-meta">' + list.length + ' ספקים</span>' +
     '</div><div class="page-actions">' +
       '<button class="btn-gold" id="btn-add-supplier">+ ספק חדש</button>' +
@@ -652,6 +654,7 @@ function supplierCardHtml(s) {
   return (
     '<div class="entity-card" data-id="' + esc(s.id) + '">' +
       '<div class="entity-card-top">' +
+        '<span class="entity-icn">' + icon('suppliers') + '</span>' +
         '<span class="entity-name">' + esc(s.name) + '</span>' +
         (s.field ? '<span class="tag">' + esc(s.field) + '</span>' : '') +
         (projCount ? '<span class="tag tag-status">' + projCount + ' פרויקטים</span>' : '') +
@@ -675,7 +678,7 @@ function openSupplierPanel(id) {
 function renderSupplierPanel() {
   const s = getSupplier(currentSupplierId);
   if (!s) { closePanel('supplier-panel'); return; }
-  $('#supplier-panel .panel-title').textContent = '📦 ' + s.name;
+  $('#supplier-panel .panel-title').innerHTML = icon('suppliers') + ' ' + esc(s.name);
 
   const projects = projectsOfSupplier(s.id);
   const body = $('#supplier-panel-body');

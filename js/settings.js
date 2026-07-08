@@ -14,7 +14,7 @@ function renderSettingsView() {
 
   container.innerHTML =
     '<div class="page-header"><div class="page-header-text">' +
-      '<span class="page-title">⚙️ הגדרות</span>' +
+      '<span class="page-title">' + icon('settings') + 'הגדרות</span>' +
     '</div></div>' +
 
     (IS_DEMO ?

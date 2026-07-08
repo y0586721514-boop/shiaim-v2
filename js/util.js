@@ -22,7 +22,13 @@ const ICON_PATHS = {
   truck:     '<path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/>',
   check:     '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
   pause:     '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
-  logout:    '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/>'
+  logout:    '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/>',
+  note:      '<path d="M21 15a2 2 0 0 1-2 2H8l-4 3V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/>',
+  info:      '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  design:    '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L6 20"/>',
+  paperclip: '<path d="M21 8l-9.5 9.5a4 4 0 0 1-5.7-5.7L14 4a2.5 2.5 0 0 1 3.5 3.5L9 16"/>',
+  search:    '<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>',
+  user:      '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
 };
 
 /** מחזיר SVG של אייקון בקו אחיד. name מתוך ICON_PATHS. */
@@ -50,6 +56,74 @@ function fmtDate(iso) {
   const d = new Date(iso);
   if (isNaN(d)) return '';
   return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: 'numeric' });
+}
+
+/** המרת מספר לגימטריה עברית עם גרש/גרשיים. למשל 27→כ״ז, 786→תשפ״ו */
+function gematria(num) {
+  num = num % 1000; // בשנים משמיטים את האלפים (5786 → תשפ״ו)
+  const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+  const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
+  const hundreds = ['', 'ק', 'ר', 'ש', 'ת', 'תק', 'תר', 'תש', 'תת', 'תתק'];
+  let s = hundreds[Math.floor(num / 100)];
+  let rem = num % 100;
+  if (rem === 15) s += 'טו';
+  else if (rem === 16) s += 'טז';
+  else { s += tens[Math.floor(rem / 10)]; s += ones[rem % 10]; }
+  if (!s) return '';
+  if (s.length === 1) return s + '׳';                       // גרש לאות בודדת
+  return s.slice(0, -1) + '״' + s.slice(-1);                // גרשיים לפני האות האחרונה
+}
+
+/** תאריך עברי בגימטריה. למשל: "כ״ז בתמוז תשפ״ו" */
+function hebrewDate(iso) {
+  if (!iso) return '';
+  const d = (iso instanceof Date) ? iso : new Date(iso);
+  if (isNaN(d)) return '';
+  try {
+    const parts = new Intl.DateTimeFormat('he-u-ca-hebrew', { day: 'numeric', month: 'long', year: 'numeric' }).formatToParts(d);
+    return parts.map(p => {
+      if (p.type === 'day') return gematria(parseInt(p.value, 10));
+      if (p.type === 'year') return gematria(parseInt(p.value, 10));
+      return p.value; // שמות חודשים ורווחים נשארים כמו שהם
+    }).join('');
+  } catch (e) { return ''; }
+}
+
+/** לועזי + עברי יחד. למשל: "15.7.2026 · כ״ז בתמוז תשפ״ו" */
+function fmtDateBoth(iso) {
+  const g = fmtDate(iso);
+  if (!g) return '';
+  const h = hebrewDate(iso);
+  return h ? g + ' · ' + h : g;
+}
+
+/** HTML עם הלועזי מודגש והעברי מעומעם — לתצוגות מפורטות */
+function dateBothHtml(iso) {
+  const g = fmtDate(iso);
+  if (!g) return '';
+  const h = hebrewDate(iso);
+  return esc(g) + (h ? ' <span class="date-heb">' + esc(h) + '</span>' : '');
+}
+
+/**
+ * מחבר תווית תאריך עברי חיה לשדה תאריך: כשמזינים תאריך לועזי,
+ * מתעדכן אוטומטית התאריך העברי לצידו.
+ */
+function attachHebrewHint(input) {
+  if (!input) return;
+  let hint = input.parentNode.querySelector('.date-heb-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.className = 'date-heb-hint';
+    input.parentNode.appendChild(hint);
+  }
+  const update = () => {
+    const h = input.value ? hebrewDate(input.value) : '';
+    hint.textContent = h ? '📅 ' + h : '';
+  };
+  input.addEventListener('input', update);
+  input.addEventListener('change', update);
+  update();
 }
 
 function fmtDateTime(iso) {
@@ -90,11 +164,11 @@ function daysSince(iso) {
 function deadlineInfo(deadline) {
   if (!deadline) return { key: 'none', cls: '', label: '' };
   const today = todayStr();
-  if (deadline < today) return { key: 'overdue', cls: 'tag-deadline-overdue', label: '⚠️ עבר — ' + fmtDate(deadline) };
+  if (deadline < today) return { key: 'overdue', cls: 'tag-deadline-overdue', label: 'עבר · ' + fmtDateBoth(deadline) };
   const week = new Date(Date.now() + 7 * 86400000);
   const weekStr = week.getFullYear() + '-' + String(week.getMonth() + 1).padStart(2, '0') + '-' + String(week.getDate()).padStart(2, '0');
-  if (deadline <= weekStr) return { key: 'soon', cls: 'tag-deadline-soon', label: '⏰ ' + fmtDate(deadline) };
-  return { key: 'future', cls: '', label: '📅 ' + fmtDate(deadline) };
+  if (deadline <= weekStr) return { key: 'soon', cls: 'tag-deadline-soon', label: 'השבוע · ' + fmtDateBoth(deadline) };
+  return { key: 'future', cls: '', label: fmtDateBoth(deadline) };
 }
 
 function stars(priority) {

@@ -102,12 +102,15 @@ function startInlineEdit(row, cfg) {
   row.appendChild(input);
   input.focus();
   if (input.select && type !== 'date') try { input.select(); } catch (e) {}
+  if (type === 'date') attachHebrewHint(input);
 
   let finished = false;
   const finish = async (save) => {
     if (finished) return;
     finished = true;
     const newVal = input.value; // גם ערך ריק — מותר!
+    const hint = row.querySelector('.date-heb-hint');
+    if (hint) hint.remove();
     input.remove();
     valEl.style.display = '';
     if (save && String(newVal) !== String(current ?? '')) {

@@ -5,6 +5,7 @@
 let currentProjectId = null;
 let currentProjectTab = 'details';
 let currentDesignId = null;
+let currentDesignTab = 'details';
 
 /* ================= סינון ומיון ================= */
 
@@ -537,6 +538,7 @@ async function loadFilesList(body, p) {
 function openDesignPanel(projectId, designId) {
   currentProjectId = projectId;
   currentDesignId = designId;
+  currentDesignTab = 'details';
   renderDesignPanel();
   openPanel('design-panel');
 }
@@ -547,19 +549,30 @@ function renderDesignPanel() {
   if (!d) { closePanel('design-panel'); return; }
 
   $('#design-panel .panel-title').textContent = 'עיצוב — ' + d.name;
+  const tab = currentDesignTab || 'details';
+  renderPanelTabs('design-tabs', DESIGN_ASSET_TABS, tab, (k) => { currentDesignTab = k; renderDesignPanel(); });
+
   const body = $('#design-panel-body');
-  body.innerHTML =
-    fieldRowHtml({ label: 'שם', field: 'name', value: d.name }) +
-    fieldRowHtml({ label: 'סוג נכס', field: 'assetType', value: d.assetType, type: 'select' }) +
-    fieldRowHtml({ label: 'סטטוס עיצוב', field: 'status', value: d.status, type: 'select' }) +
-    fieldRowHtml({ label: 'מי מטפל', field: 'assignedTo', value: d.assignedTo }) +
-    fieldRowHtml({ label: 'דדליין', field: 'deadline', value: d.deadline, display: d.deadline ? fmtDateBoth(d.deadline) : '', type: 'date' }) +
-    priorityRowHtml(d.priority, isBoss()) +
-    renderStudioHtml(p, d) +
-    designFilesHtml(p, d) +
-    designQAHtml(d) +
-    logSectionHtml('importantInfo', d.importantInfo) +
-    logSectionHtml('notes', d.notes);
+  let html = '';
+  if (tab === 'details') {
+    html =
+      fieldRowHtml({ label: 'שם', field: 'name', value: d.name }) +
+      fieldRowHtml({ label: 'סוג נכס', field: 'assetType', value: d.assetType, type: 'select' }) +
+      fieldRowHtml({ label: 'סטטוס עיצוב', field: 'status', value: d.status, type: 'select' }) +
+      fieldRowHtml({ label: 'מי מטפל', field: 'assignedTo', value: d.assignedTo }) +
+      fieldRowHtml({ label: 'דדליין', field: 'deadline', value: d.deadline, display: d.deadline ? fmtDateBoth(d.deadline) : '', type: 'date' }) +
+      priorityRowHtml(d.priority, isBoss());
+  } else if (tab === 'studio') {
+    html = renderStudioHtml(p, d);
+  } else if (tab === 'files') {
+    html = designFilesHtml(p, d);
+  } else if (tab === 'qa') {
+    html = designQAHtml(d);
+  } else {
+    html = logSectionHtml('importantInfo', d.importantInfo) + logSectionHtml('notes', d.notes);
+  }
+  body.innerHTML = html;
+  body.scrollTop = 0;
 
   wireInlineEdits(body, {
     getValue: (f) => {

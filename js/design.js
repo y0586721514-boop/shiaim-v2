@@ -261,10 +261,40 @@ function designProjectCardHtml(p) {
   );
 }
 
+/* ---- תשתית טאבים לפאנלים (מפחית גלילה) ---- */
+
+function renderPanelTabs(containerId, tabs, activeKey, onSelect) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = tabs.map(t =>
+    '<button class="panel-tab' + (t.key === activeKey ? ' active' : '') + '" data-tab="' + t.key + '">' + esc(t.label) + '</button>'
+  ).join('');
+  c.querySelectorAll('.panel-tab').forEach(b => { b.onclick = () => onSelect(b.dataset.tab); });
+}
+
+const DESIGN_PROJECT_TABS = [
+  { key: 'details', label: 'פרטים' },
+  { key: 'spec', label: 'מפרט ואריזה' },
+  { key: 'assets', label: 'נכסים' },
+  { key: 'refs', label: 'רפרנס וקבצים' },
+  { key: 'notes', label: 'הערות' }
+];
+
+const DESIGN_ASSET_TABS = [
+  { key: 'details', label: 'פרטים' },
+  { key: 'studio', label: 'אולפן הדמיה' },
+  { key: 'files', label: 'קבצים' },
+  { key: 'qa', label: 'QA' },
+  { key: 'notes', label: 'הערות' }
+];
+
+let currentDesignProjectTab = 'details';
+
 /* ---- פאנל פרויקט עיצוב ---- */
 
 function openDesignProjectPanel(id) {
   currentProjectId = id;
+  currentDesignProjectTab = 'details';
   renderDesignProjectPanel();
   openPanel('design-project-panel');
 }
@@ -274,23 +304,32 @@ function renderDesignProjectPanel() {
   if (!p || !isDesignProject(p)) { closePanel('design-project-panel'); return; }
 
   $('#design-project-panel .panel-title').textContent = 'עיצוב — ' + p.name;
+  const tab = currentDesignProjectTab || 'details';
+  renderPanelTabs('design-project-tabs', DESIGN_PROJECT_TABS, tab, (k) => { currentDesignProjectTab = k; renderDesignProjectPanel(); });
+
   const body = $('#design-project-panel-body');
   const linked = p.linkedProjectId ? getProject(p.linkedProjectId) : null;
 
-  body.innerHTML =
-    fieldRowHtml({ label: 'שם', field: 'name', value: p.name }) +
-    fieldRowHtml({ label: 'סטטוס עיצוב', field: 'status', value: p.status, type: 'select' }) +
-    fieldRowHtml({ label: 'מי מטפל', field: 'assignedTo', value: p.assignedTo }) +
-    fieldRowHtml({ label: 'מקושר לפרויקט ייבוא', field: 'linkedProjectId', value: p.linkedProjectId, display: linked ? linked.name : '', type: 'select' }) +
-    fieldRowHtml({ label: 'דדליין', field: 'deadline', value: p.deadline, display: p.deadline ? fmtDateBoth(p.deadline) : '', type: 'date' }) +
-    priorityRowHtml(p.priority, isBoss()) +
-    productSpecRows(p) +
-    packagingRows(p) +
-    projectRefsHtml(p) +
-    designAssetsListHtml(p) +
-    filesSectionHtml(p) +
-    logSectionHtml('importantInfo', p.importantInfo) +
-    logSectionHtml('notes', p.notes);
+  let html = '';
+  if (tab === 'details') {
+    html =
+      fieldRowHtml({ label: 'שם', field: 'name', value: p.name }) +
+      fieldRowHtml({ label: 'סטטוס עיצוב', field: 'status', value: p.status, type: 'select' }) +
+      fieldRowHtml({ label: 'מי מטפל', field: 'assignedTo', value: p.assignedTo }) +
+      fieldRowHtml({ label: 'מקושר לפרויקט ייבוא', field: 'linkedProjectId', value: p.linkedProjectId, display: linked ? linked.name : '', type: 'select' }) +
+      fieldRowHtml({ label: 'דדליין', field: 'deadline', value: p.deadline, display: p.deadline ? fmtDateBoth(p.deadline) : '', type: 'date' }) +
+      priorityRowHtml(p.priority, isBoss());
+  } else if (tab === 'spec') {
+    html = productSpecRows(p) + packagingRows(p);
+  } else if (tab === 'assets') {
+    html = designAssetsListHtml(p);
+  } else if (tab === 'refs') {
+    html = projectRefsHtml(p) + filesSectionHtml(p);
+  } else {
+    html = logSectionHtml('importantInfo', p.importantInfo) + logSectionHtml('notes', p.notes);
+  }
+  body.innerHTML = html;
+  body.scrollTop = 0;
 
   wireInlineEdits(body, {
     getValue: (f) => {

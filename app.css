@@ -370,9 +370,29 @@ a { color: var(--navy-light); }
 
 /* ================= דשבורד "היום" — לוק מקצועי ================= */
 
-.dash-head { margin-bottom: 1.3rem; }
+.dash-head { margin-bottom: 1.3rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .dash-greet { font-size: 1.6rem; font-weight: 800; color: var(--navy); letter-spacing: -0.01em; }
 .dash-date { color: var(--text-muted); font-size: .98rem; margin-top: .15rem; }
+.dash-import-btn { white-space: nowrap; }
+
+/* ייבוא חכם מרובה-מוצרים */
+.mi-list { display: flex; flex-direction: column; gap: .5rem; max-height: 46vh; overflow-y: auto; }
+.mi-row { border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem .7rem; }
+.mi-row-main { display: flex; flex-direction: column; gap: .3rem; }
+.mi-name { font-weight: 600; }
+.mi-nums { display: flex; flex-wrap: wrap; gap: .5rem; color: var(--text-sec); font-size: .88rem; }
+.mi-nums span { background: var(--surface-2); border-radius: 999px; padding: .05rem .6rem; }
+.mi-target { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-top: .5rem; }
+.mi-target label { display: flex; align-items: center; gap: .3rem; font-size: .92rem; }
+.mi-target .mi-existing { flex: 1 1 160px; min-width: 140px; }
+
+/* מוצרים בכרטיס ספק */
+.sup-summary { color: var(--text-sec); margin-bottom: .6rem; }
+.sup-summary b { color: var(--navy); }
+.sup-grp { margin-bottom: .6rem; }
+.sup-grp-title { display: flex; align-items: center; gap: .4rem; font-weight: 700; color: var(--gold-dark); font-size: .92rem; margin: .5rem 0 .3rem; }
+.sup-grp-title .icn { width: 16px; height: 16px; }
+.sup-vol { margin-inline-start: auto; color: var(--text-sec); font-weight: 700; white-space: nowrap; }
 
 .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem; margin-bottom: 1.6rem; }
 @media (max-width: 640px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }

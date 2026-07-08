@@ -49,8 +49,11 @@ function renderTodayView() {
 
   let html =
     '<div class="dash-head">' +
-      '<div class="dash-greet">' + esc(greetingByHour()) + (S.displayName ? ', ' + esc(S.displayName) : '') + '</div>' +
-      '<div class="dash-date">' + esc(todayDateLabel()) + '</div>' +
+      '<div class="dash-head-text">' +
+        '<div class="dash-greet">' + esc(greetingByHour()) + (S.displayName ? ', ' + esc(S.displayName) : '') + '</div>' +
+        '<div class="dash-date">' + esc(todayDateLabel()) + '</div>' +
+      '</div>' +
+      '<button class="btn-gold dash-import-btn" id="global-import-btn">🪄 ייבוא חכם מקובץ ספק</button>' +
     '</div>' +
 
     '<div class="kpi-row">' +
@@ -102,6 +105,9 @@ function renderTodayView() {
   }
 
   container.innerHTML = html;
+
+  const importBtn = container.querySelector('#global-import-btn');
+  if (importBtn) importBtn.onclick = () => { if (typeof openGlobalImport === 'function') openGlobalImport(); };
 
   container.querySelectorAll('.dash-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -770,13 +776,7 @@ function renderSupplierPanel() {
     fieldRowHtml({ label: 'טלפון', field: 'phone', value: s.phone, type: 'tel' }) +
     fieldRowHtml({ label: 'הערות', field: 'notes', value: s.notes, type: 'textarea' }) +
     '<div class="form-hint">כדאי לשמור כאן: מחירים אחרונים, איכות, זמני ייצור</div>' +
-    '<div class="log-section-title" style="margin-top:1.1rem">📋 פרויקטים שיוצרו אצלו (' + projects.length + ')</div>' +
-    '<div class="related-list">' +
-      (projects.length ? projects.map(p =>
-        '<div class="related-item" data-id="' + esc(p.id) + '">' + (p.completed ? '✅' : '📋') + ' <b>' + esc(p.name) + '</b>' +
-        (clientName(p.clientId) ? '<span style="color:var(--text-muted)">' + esc(clientName(p.clientId)) + '</span>' : '') +
-        '</div>').join('') : '<div style="color:var(--text-muted)">עדיין לא שויכו פרויקטים לספק זה (משייכים דרך שדה "ספק" בפרויקט)</div>') +
-    '</div>';
+    supplierProductsHtml(projects);
 
   wireInlineEdits(body, {
     getValue: (f) => s[f],
@@ -791,6 +791,46 @@ function renderSupplierPanel() {
     (isBoss() ? '<button class="btn-danger" id="sp-delete">🗑 מחק ספק</button>' : '');
   const bD = $('#sp-delete');
   if (bD) bD.onclick = () => deleteSupplierFlow(s.id);
+}
+
+/** תצוגה מרוכזת של כל המוצרים מהספק — לפי מכולה, עם נפח כולל */
+function supplierProductsHtml(projects) {
+  const active = projects.filter(p => !p.completed);
+  if (!projects.length) {
+    return '<div class="log-section-title" style="margin-top:1.1rem">📦 מוצרים מהספק</div>' +
+      '<div style="color:var(--text-muted)">עדיין לא שויכו מוצרים לספק זה (משייכים דרך שדה "ספק" בפרויקט, או בייבוא חכם).</div>';
+  }
+  const totalVol = active.reduce((s, p) => s + projectVolume(p), 0);
+
+  // קיבוץ לפי מכולה
+  const groups = {};
+  active.forEach(p => { const key = p.shipmentName || '__none__'; (groups[key] = groups[key] || []).push(p); });
+  const done = projects.filter(p => p.completed);
+
+  const groupHtml = (title, list, showShip) =>
+    '<div class="sup-grp">' +
+      (title ? '<div class="sup-grp-title">' + icon('truck') + esc(title) + '</div>' : '') +
+      list.map(p =>
+        '<div class="related-item" data-id="' + esc(p.id) + '">' +
+          '<b>' + esc(p.name) + '</b>' +
+          (p.status ? '<span class="tag tag-status">' + esc(p.status) + '</span>' : '') +
+          '<span class="sup-vol">' + (Math.round(projectVolume(p) * 100) / 100) + ' מ״ק</span>' +
+        '</div>').join('') +
+    '</div>';
+
+  let html =
+    '<div class="log-section-title" style="margin-top:1.1rem">📦 מוצרים מהספק (' + active.length + ' פעילים)</div>' +
+    '<div class="sup-summary">נפח כולל פעיל: <b>' + (Math.round(totalVol * 100) / 100) + ' מ״ק</b></div>';
+
+  Object.keys(groups).sort().forEach(key => {
+    if (key === '__none__') return;
+    html += groupHtml('מכולה: ' + key, groups[key], true);
+  });
+  if (groups['__none__']) html += groupHtml('ללא שיוך למכולה', groups['__none__'], false);
+  if (done.length) html += '<div class="sup-grp-title" style="margin-top:.6rem;color:var(--text-muted)">הסתיימו (' + done.length + ')</div>' +
+    done.map(p => '<div class="related-item" data-id="' + esc(p.id) + '">✅ <b>' + esc(p.name) + '</b></div>').join('');
+
+  return html;
 }
 
 function deleteSupplierFlow(id) {

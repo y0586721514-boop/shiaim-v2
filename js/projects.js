@@ -228,6 +228,15 @@ function renderProjectPanel() {
   if (btnD) btnD.onclick = () => deleteProjectFlow(p.id);
 }
 
+/** רשימת הקטגוריות הקיימות לבחירה */
+function categoryOptions() {
+  const cats = {};
+  S.projects.forEach(p => { if (p.category) cats[p.category] = true; });
+  return [{ value: '', label: '— ללא —' }]
+    .concat(Object.keys(cats).sort((a, b) => a.localeCompare(b, 'he')).map(c => ({ value: c, label: c })))
+    .concat([{ value: '__new__', label: '+ קטגוריה חדשה...' }]);
+}
+
 /** רשימת המכולות/משלוחים הקיימים לבחירה */
 function shipmentOptions() {
   const names = {};
@@ -279,6 +288,7 @@ function renderProjectDetailsTab(body, p) {
     (p.nameOriginal ? '<div class="field-row"><span class="field-label">שם מקורי</span><span class="field-value readonly">' + esc(p.nameOriginal) + '</span></div>' : '') +
     fieldRowHtml({ label: 'לקוח', field: 'clientId', value: p.clientId, display: clientName(p.clientId), type: 'select' }) +
     fieldRowHtml({ label: 'סוג', field: 'type', value: p.type, display: p.type === 'office' ? 'פרויקט משרד' : 'פרויקט לקוח', type: 'select' }) +
+    fieldRowHtml({ label: 'קטגוריה', field: 'category', value: p.category, type: 'select' }) +
     fieldRowHtml({ label: 'סטטוס', field: 'status', value: p.status, type: 'select' }) +
     fieldRowHtml({ label: 'דדליין', field: 'deadline', value: p.deadline, display: p.deadline ? fmtDateBoth(p.deadline) : '', type: 'date' }) +
     fieldRowHtml({ label: 'צפי הגעה לישראל', field: 'etaIsrael', value: p.etaIsrael, display: p.etaIsrael ? fmtDateBoth(p.etaIsrael) : '', type: 'date' }) +
@@ -299,6 +309,7 @@ function renderProjectDetailsTab(body, p) {
       if (f === 'clientId') return clientOptions();
       if (f === 'supplierId') return supplierOptions();
       if (f === 'shipmentName') return shipmentOptions();
+      if (f === 'category') return categoryOptions();
       if (f === 'type') return [{ value: 'client', label: 'פרויקט לקוח' }, { value: 'office', label: 'פרויקט משרד' }];
       if (f === 'status') return S.statuses.map(s => ({ value: s, label: s }));
       return null;
@@ -315,6 +326,22 @@ function renderProjectDetailsTab(body, p) {
               const name = back.querySelector('#new-shipment').value.trim();
               if (!name) { toast('צריך שם', 'error'); return; }
               close(); saveProjectField(p.id, 'shipmentName', name);
+            };
+          }
+        });
+        renderProjectPanel();
+        return;
+      }
+      if (f === 'category' && v === '__new__') {
+        openModal({
+          title: 'קטגוריה חדשה', maxWidth: '360px',
+          bodyHtml: '<div class="form-group"><label class="form-label">שם הקטגוריה</label><input type="text" id="new-cat" class="form-input" placeholder="למשל: צעצועים / אקריליק / אריזות"></div>',
+          footerHtml: '<button class="btn-gold" id="new-cat-ok">שמור</button><button class="btn-secondary btn-modal-close">ביטול</button>',
+          onOpen(back, close) {
+            back.querySelector('#new-cat-ok').onclick = () => {
+              const name = back.querySelector('#new-cat').value.trim();
+              if (!name) { toast('צריך שם', 'error'); return; }
+              close(); saveProjectField(p.id, 'category', name);
             };
           }
         });

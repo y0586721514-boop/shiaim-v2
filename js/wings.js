@@ -736,25 +736,91 @@ function openAddClientModal(onDone) {
 /* ================= אגף מוצרים וספקים =================
    הזיכרון הארגוני: "איפה ייצרנו את זה בפעם הקודמת?" */
 
+let suppliersTab = 'suppliers';   // 'suppliers' | 'catalog'
+let catalogSearch = '', catalogCategory = '';
+
 function renderSuppliersView() {
   const container = $('#view-container');
-  const list = S.suppliers.slice().sort((a, b) => a.name.localeCompare(b.name, 'he'));
+
   container.innerHTML =
     '<div class="page-header"><div class="page-header-text">' +
       '<span class="page-title">' + icon('suppliers') + 'מוצרים וספקים</span>' +
-      '<span class="page-meta">' + list.length + ' ספקים</span>' +
     '</div><div class="page-actions">' +
-      '<button class="btn-gold" id="btn-add-supplier">+ ספק חדש</button>' +
+      '<div class="seg-toggle">' +
+        '<button class="seg-btn' + (suppliersTab === 'suppliers' ? ' active' : '') + '" data-tab="suppliers">ספקים</button>' +
+        '<button class="seg-btn' + (suppliersTab === 'catalog' ? ' active' : '') + '" data-tab="catalog">קטלוג מוצרים</button>' +
+      '</div>' +
+      (suppliersTab === 'suppliers' ? '<button class="btn-gold" id="btn-add-supplier">+ ספק חדש</button>' : '') +
     '</div></div>' +
+    '<div id="suppliers-body"></div>';
+
+  container.querySelectorAll('.seg-btn').forEach(b => b.onclick = () => { suppliersTab = b.dataset.tab; renderSuppliersView(); });
+  if (suppliersTab === 'catalog') renderProductCatalog($('#suppliers-body'));
+  else renderSuppliersList($('#suppliers-body'));
+}
+
+function renderSuppliersList(body) {
+  const list = S.suppliers.slice().sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  body.innerHTML =
     '<div class="card-list">' +
       (list.length ? list.map(supplierCardHtml).join('') :
         '<div class="empty-state"><div class="big">📦</div>כאן שומרים את המפעלים בסין — שלא נשכח איפה ייצרנו</div>') +
     '</div>';
+  const add = $('#btn-add-supplier');
+  if (add) add.onclick = () => openAddSupplierModal();
+  body.querySelectorAll('.entity-card').forEach(card => { card.onclick = () => openSupplierPanel(card.dataset.id); });
+}
 
-  $('#btn-add-supplier').onclick = () => openAddSupplierModal();
-  container.querySelectorAll('.entity-card').forEach(card => {
-    card.onclick = () => openSupplierPanel(card.dataset.id);
-  });
+function renderProductCatalog(body) {
+  const cats = {};
+  S.projects.forEach(p => { if (p.category) cats[p.category] = true; });
+  const catList = Object.keys(cats).sort((a, b) => a.localeCompare(b, 'he'));
+
+  let products = S.projects.filter(p => !p.completed);
+  if (catalogCategory) products = products.filter(p => (p.category || '') === catalogCategory);
+  if (catalogSearch) {
+    const q = catalogSearch.toLowerCase();
+    products = products.filter(p => (p.name + ' ' + (p.category || '') + ' ' + supplierName(p.supplierId) + ' ' + (p.nameOriginal || '')).toLowerCase().includes(q));
+  }
+  products.sort((a, b) => (a.category || 'תתת').localeCompare(b.category || 'תתת', 'he') || a.name.localeCompare(b.name, 'he'));
+
+  const catOpts = '<option value="">כל הקטגוריות</option>' + catList.map(c => '<option value="' + esc(c) + '"' + (catalogCategory === c ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+
+  body.innerHTML =
+    '<div class="filters-bar">' +
+      '<div class="search-wrap"><span class="search-ico">' + icon('search') + '</span>' +
+        '<input type="text" id="cat-search" class="filter-search" placeholder="חיפוש מוצר..." value="' + esc(catalogSearch) + '"></div>' +
+      '<select id="cat-filter" class="filter-select">' + catOpts + '</select>' +
+      '<span class="page-meta" style="align-self:center">' + products.length + ' מוצרים</span>' +
+    '</div>' +
+    '<div class="card-list">' +
+      (products.length ? products.map(catalogProductHtml).join('') :
+        '<div class="empty-state"><div class="big">📦</div>אין מוצרים להצגה. הוסף קטגוריה למוצרים כדי לארגן אותם.</div>') +
+    '</div>';
+
+  let t;
+  $('#cat-search').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { catalogSearch = e.target.value.trim(); renderProductCatalog(body); }, 200); });
+  $('#cat-filter').addEventListener('change', (e) => { catalogCategory = e.target.value; renderProductCatalog(body); });
+  body.querySelectorAll('.entity-card').forEach(card => { card.onclick = () => openProjectPanel(card.dataset.id); });
+}
+
+function catalogProductHtml(p) {
+  const vol = projectVolume(p);
+  return (
+    '<div class="entity-card" data-id="' + esc(p.id) + '">' +
+      '<div class="entity-card-top">' +
+        '<span class="entity-icn">' + icon('projects') + '</span>' +
+        '<span class="entity-name">' + esc(p.name) + '</span>' +
+        (p.category ? '<span class="tag">' + esc(p.category) + '</span>' : '') +
+        (p.status ? '<span class="tag tag-status">' + esc(p.status) + '</span>' : '') +
+      '</div>' +
+      '<div class="entity-meta">' +
+        (supplierName(p.supplierId) ? '<span>🏭 ' + esc(supplierName(p.supplierId)) + '</span>' : '') +
+        (vol ? '<span>' + (Math.round(vol * 100) / 100) + ' מ״ק</span>' : '') +
+        (p.shipmentName ? '<span>מכולה: ' + esc(p.shipmentName) + '</span>' : '') +
+      '</div>' +
+    '</div>'
+  );
 }
 
 function supplierCardHtml(s) {

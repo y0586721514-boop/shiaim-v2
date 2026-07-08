@@ -10,6 +10,7 @@ const VIEWS = {
   ideas: renderIdeasView,
   clients: renderClientsView,
   suppliers: renderSuppliersView,
+  containers: renderContainersView,
   settings: renderSettingsView
 };
 
@@ -33,7 +34,7 @@ function updateNavHighlight() {
   $$('.sidebar-nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
   $$('.bottom-nav-item').forEach(b => {
     const v = b.dataset.view;
-    b.classList.toggle('active', v === S.view || (v === 'more' && (S.view === 'suppliers' || S.view === 'settings')));
+    b.classList.toggle('active', v === S.view || (v === 'more' && (S.view === 'suppliers' || S.view === 'settings' || S.view === 'containers')));
   });
 }
 
@@ -44,6 +45,7 @@ function openMoreMenu() {
     maxWidth: '320px',
     bodyHtml:
       '<button class="btn-secondary btn-block" data-goto="suppliers">📦 מוצרים וספקים</button>' +
+      '<button class="btn-secondary btn-block" data-goto="containers">🚢 מכולות</button>' +
       '<button class="btn-secondary btn-block" data-goto="settings">⚙️ הגדרות</button>',
     onOpen(back, close) {
       back.querySelectorAll('[data-goto]').forEach(b => {
@@ -62,6 +64,7 @@ function updateFab() {
     ideas: () => openAddIdeaModal(),
     clients: () => openAddClientModal(),
     suppliers: () => openAddSupplierModal(),
+    containers: null,
     settings: null
   };
   const titles = {

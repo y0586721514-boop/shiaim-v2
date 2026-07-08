@@ -148,6 +148,82 @@ function attnCard(id, kind, tone, title, sub, meta, iconName) {
   );
 }
 
+/* ================= מסך מכולות ומשלוחים =================
+   תמונת-על של כל המכולות המשותפות: מה נכנס לכל מכולה, נפח וקיבולת. */
+
+const CONT_CAP20 = 28, CONT_CAP40 = 67;
+
+function renderContainersView() {
+  const container = $('#view-container');
+  const active = S.projects.filter(p => !p.completed);
+
+  const groups = {};
+  active.forEach(p => { if (p.shipmentName) { (groups[p.shipmentName] = groups[p.shipmentName] || []).push(p); } });
+  const names = Object.keys(groups).sort();
+  const unassigned = active.filter(p => !p.shipmentName && projectVolume(p) > 0);
+
+  let html =
+    '<div class="page-header"><div class="page-header-text">' +
+      '<span class="page-title">' + icon('truck') + 'מכולות ומשלוחים</span>' +
+      '<span class="page-meta">' + names.length + ' מכולות פעילות</span>' +
+    '</div></div>';
+
+  if (!names.length) {
+    html += '<div class="empty-state"><div class="big">🚢</div>אין עדיין מכולות משותפות. שייך פרויקטים למכולה דרך שדה "שיוך למכולה" בטאב פרטים של הפרויקט.</div>';
+  } else {
+    html += '<div class="card-list">' + names.map(n => containerGroupCard(n, groups[n])).join('') + '</div>';
+  }
+
+  if (unassigned.length) {
+    html += '<div class="dash-section-head" style="margin-top:1.6rem">' + icon('alert') + '<span>מוצרים עם נפח שטרם שויכו למכולה</span><span class="dash-count">' + unassigned.length + '</span></div>';
+    html += '<div class="dash-list">' + unassigned.map(p =>
+      '<div class="dash-card tone-amber" data-kind="project" data-id="' + esc(p.id) + '">' +
+        '<span class="dash-card-icn">' + icon('projects') + '</span>' +
+        '<div class="dash-card-body"><div class="dash-card-title">' + esc(p.name) + '</div>' +
+          '<div class="dash-card-meta">' + (Math.round(projectVolume(p) * 100) / 100) + ' מ״ק · טרם משויך למכולה</div></div>' +
+        '<span class="dash-card-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>' +
+      '</div>').join('') + '</div>';
+  }
+
+  container.innerHTML = html;
+  container.querySelectorAll('[data-kind="project"]').forEach(el => {
+    el.addEventListener('click', () => openProjectPanel(el.dataset.id));
+  });
+}
+
+function containerGroupCard(name, projects) {
+  const total = projects.reduce((s, p) => s + projectVolume(p), 0);
+  const fill40 = total / CONT_CAP40;
+  const pct40 = Math.round(fill40 * 100);
+  const pctBar = Math.min(100, pct40);
+  const over = total > CONT_CAP40;
+  const barTone = over ? 'red' : (fill40 > 0.85 ? 'amber' : 'gold');
+
+  const items = projects.map(p =>
+    '<div class="cont-item" data-kind="project" data-id="' + esc(p.id) + '">' +
+      '<span class="cont-item-name">' + esc(p.name) + '</span>' +
+      (p.status ? '<span class="tag tag-status">' + esc(p.status) + '</span>' : '') +
+      '<span class="cont-item-vol">' + (Math.round(projectVolume(p) * 100) / 100) + ' מ״ק</span>' +
+    '</div>').join('');
+
+  let advice;
+  if (over) advice = '<div class="ship-grp-warn">⚠️ חורג ממכולת 40׳ — צריך מכולה נוספת או לפצל את המשלוח</div>';
+  else if (total > CONT_CAP20) advice = '<div class="ship-grp-ok">✓ נכנס במכולת 40׳ (' + pct40 + '% מנוצל)</div>';
+  else if (total > 0) advice = '<div class="ship-grp-ok">✓ נכנס במכולת 20׳ (' + Math.round(total / CONT_CAP20 * 100) + '% מנוצל)</div>';
+  else advice = '<div class="cont-note">הזן נפח במחשבון של כל מוצר כדי לראות ניצול</div>';
+
+  return (
+    '<div class="cont-card">' +
+      '<div class="cont-head">' + icon('truck') + '<span class="cont-name">' + esc(name) + '</span>' +
+        '<span class="cont-count">' + projects.length + ' מוצרים</span></div>' +
+      '<div class="cont-bar"><div class="cont-bar-fill tone-' + barTone + '" style="width:' + pctBar + '%"></div></div>' +
+      '<div class="cont-stats"><b>' + (Math.round(total * 100) / 100) + ' מ״ק</b> · ' + pct40 + '% ממכולת 40׳ (' + CONT_CAP40 + ' מ״ק)</div>' +
+      '<div class="cont-items">' + items + '</div>' +
+      advice +
+    '</div>'
+  );
+}
+
 /* ================= אגף רעיונות =================
    "כל רעיון שדובר — חייב להופיע במערכת. אין רעיונות נעלמים." */
 

@@ -834,6 +834,34 @@ a { color: var(--navy-light); }
 .ship-grp-warn { color: var(--red); font-weight: 600; margin-top: .4rem; font-size: .9rem; }
 .ship-grp-ok { color: var(--green); font-weight: 600; margin-top: .4rem; font-size: .9rem; }
 
+/* ================= מסך מכולות ================= */
+.cont-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: 1rem 1.1rem;
+}
+.cont-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .7rem; }
+.cont-head .icn { width: 22px; height: 22px; color: var(--gold-dark); }
+.cont-name { font-weight: 800; font-size: 1.1rem; color: var(--navy); flex: 1; }
+.cont-count { background: var(--surface-2); color: var(--text-sec); border-radius: 999px; font-size: .82rem; font-weight: 700; padding: .1rem .7rem; }
+.cont-bar { height: 12px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+.cont-bar-fill { height: 100%; border-radius: 999px; transition: width .3s ease; }
+.cont-bar-fill.tone-gold { background: var(--gold); }
+.cont-bar-fill.tone-amber { background: var(--amber); }
+.cont-bar-fill.tone-red { background: var(--red); }
+.cont-stats { color: var(--text-sec); font-size: .95rem; margin: .5rem 0 .7rem; }
+.cont-stats b { color: var(--navy); font-size: 1.05rem; }
+.cont-items { display: flex; flex-direction: column; gap: .35rem; }
+.cont-item {
+  display: flex; align-items: center; gap: .6rem;
+  background: var(--surface-2); border-radius: var(--radius-sm);
+  padding: .45rem .7rem; cursor: pointer;
+}
+.cont-item:hover { background: var(--border); }
+.cont-item-name { font-weight: 600; color: var(--navy); flex: 1; }
+.cont-item-vol { color: var(--text-sec); font-weight: 700; white-space: nowrap; }
+.cont-note { color: var(--text-muted); font-size: .88rem; margin-top: .4rem; }
+
 /* ================= Toast ================= */
 
 .toast-container {

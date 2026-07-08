@@ -178,6 +178,7 @@ function projectRowHtml(p) {
         (cName ? '<span>👤 ' + esc(cName) + '</span>' : '') +
         '<span class="tag tag-type-' + esc(p.type) + '">' + (p.type === 'office' ? 'משרד' : 'לקוח') + '</span>' +
         (dl.label ? '<span class="tag ' + dl.cls + '">' + dl.label + '</span>' : '') +
+        (p.etaIsrael ? '<span class="tag">🚢 הגעה: ' + fmtDate(p.etaIsrael) + '</span>' : '') +
         (indicators ? '<span class="row-indicators">' + indicators + '</span>' : '') +
       '</div>' +
       (designRows ? '<div class="design-subrows">' + designRows + '</div>' : '') +
@@ -243,6 +244,7 @@ function renderProjectDetailsTab(body, p) {
     fieldRowHtml({ label: 'סוג', field: 'type', value: p.type, display: p.type === 'office' ? 'פרויקט משרד' : 'פרויקט לקוח', type: 'select' }) +
     fieldRowHtml({ label: 'סטטוס', field: 'status', value: p.status, type: 'select' }) +
     fieldRowHtml({ label: 'דדליין', field: 'deadline', value: p.deadline, display: p.deadline ? fmtDate(p.deadline) : '', type: 'date' }) +
+    fieldRowHtml({ label: 'צפי הגעה לישראל', field: 'etaIsrael', value: p.etaIsrael, display: p.etaIsrael ? fmtDate(p.etaIsrael) : '', type: 'date' }) +
     priorityRowHtml(p.priority, isBoss()) +
     fieldRowHtml({ label: 'ספק', field: 'supplierId', value: p.supplierId, display: supplierName(p.supplierId), type: 'select' }) +
     '<div class="field-row"><span class="field-label">נוצר</span><span class="field-value readonly">' +

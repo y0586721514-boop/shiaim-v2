@@ -8,6 +8,6 @@
    כתובת ה-Web App כאן, שומרים, ומעלים לגיטהאב. זהו.
    ================================================================ */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyWQwl7EPRAf4IBlr1d9_FoxLS6Z9ATIogEICkA_FrgwKmf2dsAPlj0ivc2tvDnz-6u/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzA3ZJfNR4M0FvAPOOUrGqWIo_OfOs_MGq-A28Zl3uL49d_zd_a0Rbci0RlG3eaBt4M/exec';
 
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.2.1';

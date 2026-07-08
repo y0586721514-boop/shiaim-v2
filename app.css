@@ -799,6 +799,41 @@ a { color: var(--navy-light); }
 .calc-total-ils b { color: var(--gold-light); font-size: 1.5rem; }
 .calc-total-order { color: rgba(255,255,255,.7); font-size: .85rem; margin-top: .4rem; text-align: center; }
 
+.calc-advanced { margin: .3rem 0; }
+.calc-advanced summary { cursor: pointer; color: var(--text-sec); font-size: .9rem; padding: .3rem 0; }
+
+/* השוואת אפשרויות שילוח */
+.ship-reco {
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-top: 1rem;
+}
+.ship-reco-title { display: flex; align-items: center; gap: .4rem; font-weight: 700; color: var(--navy); margin-bottom: .5rem; }
+.ship-reco-title .icn { width: 18px; height: 18px; color: var(--gold-dark); }
+.ship-opt {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .2rem .8rem;
+  padding: .5rem .6rem; border-radius: var(--radius-sm); border: 1px solid transparent;
+}
+.ship-opt + .ship-opt { margin-top: .3rem; }
+.ship-opt.best { background: var(--green-bg); border-color: #cfe6d6; }
+.ship-opt-label { font-weight: 700; color: var(--navy); }
+.ship-opt-detail { grid-column: 1; color: var(--text-muted); font-size: .85rem; }
+.ship-opt-cost { grid-row: 1 / span 2; font-weight: 800; color: var(--navy); font-size: 1.05rem; }
+.ship-best-tag { background: var(--green); color: #fff; border-radius: 999px; font-size: .72rem; padding: .05rem .5rem; font-weight: 700; }
+
+/* מכולה משותפת */
+.ship-grp {
+  background: #F3EEDD; border: 1px solid #E5D9B4;
+  border-radius: var(--radius); padding: .7rem .9rem; margin: .3rem 0 .6rem;
+}
+.ship-grp-head { display: flex; align-items: center; gap: .4rem; font-weight: 700; color: var(--gold-dark); margin-bottom: .5rem; }
+.ship-grp-head .icn { width: 18px; height: 18px; }
+.ship-grp-item { display: flex; justify-content: space-between; gap: .8rem; padding: .3rem .4rem; border-radius: var(--radius-sm); cursor: pointer; font-size: .93rem; }
+.ship-grp-item:hover { background: rgba(255,255,255,.5); }
+.ship-grp-item.me { font-weight: 700; color: var(--navy); cursor: default; }
+.ship-grp-total { margin-top: .5rem; padding-top: .5rem; border-top: 1px solid #E5D9B4; color: var(--text-sec); font-size: .92rem; }
+.ship-grp-warn { color: var(--red); font-weight: 600; margin-top: .4rem; font-size: .9rem; }
+.ship-grp-ok { color: var(--green); font-weight: 600; margin-top: .4rem; font-size: .9rem; }
+
 /* ================= Toast ================= */
 
 .toast-container {

@@ -227,6 +227,40 @@ function renderProjectPanel() {
   if (btnD) btnD.onclick = () => deleteProjectFlow(p.id);
 }
 
+/** רשימת המכולות/משלוחים הקיימים לבחירה */
+function shipmentOptions() {
+  const names = {};
+  S.projects.forEach(p => { if (p.shipmentName) names[p.shipmentName] = true; });
+  return [{ value: '', label: '— ללא —' }]
+    .concat(Object.keys(names).sort().map(n => ({ value: n, label: n })))
+    .concat([{ value: '__new__', label: '+ מכולה / משלוח חדש...' }]);
+}
+
+/** סיכום מכולה משותפת — כל הפרויקטים באותו משלוח, ונפח מצטבר מול הקיבולת */
+function shipmentSummaryHtml(p) {
+  if (!p.shipmentName) return '';
+  const group = S.projects.filter(x => !x.completed && x.shipmentName === p.shipmentName);
+  const total = group.reduce((s, x) => s + projectVolume(x), 0);
+  const cap20 = 28, cap40 = 67;
+  const rows = group.map(x => {
+    const v = projectVolume(x);
+    return '<div class="ship-grp-item' + (x.id === p.id ? ' me' : '') + '" data-id="' + esc(x.id) + '">' +
+      '<span>' + esc(x.name) + (x.id === p.id ? ' (הפרויקט הזה)' : '') + '</span>' +
+      '<span>' + (Math.round(v * 100) / 100) + ' מ״ק</span></div>';
+  }).join('');
+  return (
+    '<div class="ship-grp">' +
+      '<div class="ship-grp-head">' + icon('truck') + ' מכולה משותפת: "' + esc(p.shipmentName) + '" · ' + group.length + ' מוצרים</div>' +
+      rows +
+      '<div class="ship-grp-total">נפח מצטבר: <b>' + (Math.round(total * 100) / 100) + ' מ״ק</b> · ' +
+        Math.round(total / cap40 * 100) + '% ממכולת 40׳ · ' + Math.round(total / cap20 * 100) + '% ממכולת 20׳</div>' +
+      (total > cap40 ? '<div class="ship-grp-warn">⚠️ חורג ממכולת 40׳ אחת — שקול מכולה נוספת או פיצול</div>' :
+        (total > cap20 && total <= cap40 ? '<div class="ship-grp-ok">✓ נכנס במכולת 40׳</div>' :
+        (total > 0 && total <= cap20 ? '<div class="ship-grp-ok">✓ נכנס במכולת 20׳</div>' : ''))) +
+    '</div>'
+  );
+}
+
 function clientOptions() {
   return [{ value: '', label: '— ללא לקוח —' }]
     .concat(S.clients.slice().sort((a, b) => a.name.localeCompare(b.name, 'he')).map(c => ({ value: c.id, label: c.name })))
@@ -248,6 +282,10 @@ function renderProjectDetailsTab(body, p) {
     fieldRowHtml({ label: 'צפי הגעה לישראל', field: 'etaIsrael', value: p.etaIsrael, display: p.etaIsrael ? fmtDateBoth(p.etaIsrael) : '', type: 'date' }) +
     priorityRowHtml(p.priority, isBoss()) +
     fieldRowHtml({ label: 'ספק', field: 'supplierId', value: p.supplierId, display: supplierName(p.supplierId), type: 'select' }) +
+    fieldRowHtml({ label: 'כתובת איסוף', field: 'pickupAddress', value: p.pickupAddress, type: 'textarea' }) +
+    fieldRowHtml({ label: 'נמל יציאה', field: 'port', value: p.port }) +
+    fieldRowHtml({ label: 'שיוך למכולה', field: 'shipmentName', value: p.shipmentName, type: 'select' }) +
+    shipmentSummaryHtml(p) +
     '<div class="field-row"><span class="field-label">נוצר</span><span class="field-value readonly">' +
       esc(fmtDateBoth(p.createdAt) + ' · ' + userDisplay(p.createdBy)) + '</span></div>' +
     filesSectionHtml(p);
@@ -257,17 +295,37 @@ function renderProjectDetailsTab(body, p) {
     options: (f) => {
       if (f === 'clientId') return clientOptions();
       if (f === 'supplierId') return supplierOptions();
+      if (f === 'shipmentName') return shipmentOptions();
       if (f === 'type') return [{ value: 'client', label: 'פרויקט לקוח' }, { value: 'office', label: 'פרויקט משרד' }];
       if (f === 'status') return S.statuses.map(s => ({ value: s, label: s }));
       return null;
     },
     save: async (f, v) => {
       if (f === 'clientId' && v === '__new__') { openAddClientModal((newId) => saveProjectField(p.id, 'clientId', newId)); renderProjectPanel(); return; }
+      if (f === 'shipmentName' && v === '__new__') {
+        openModal({
+          title: 'מכולה / משלוח חדש', maxWidth: '360px',
+          bodyHtml: '<div class="form-group"><label class="form-label">שם המכולה / המשלוח</label><input type="text" id="new-shipment" class="form-input" placeholder="למשל: מכולה - דצמבר"></div>',
+          footerHtml: '<button class="btn-gold" id="new-shipment-ok">שמור</button><button class="btn-secondary btn-modal-close">ביטול</button>',
+          onOpen(back, close) {
+            back.querySelector('#new-shipment-ok').onclick = () => {
+              const name = back.querySelector('#new-shipment').value.trim();
+              if (!name) { toast('צריך שם', 'error'); return; }
+              close(); saveProjectField(p.id, 'shipmentName', name);
+            };
+          }
+        });
+        renderProjectPanel();
+        return;
+      }
       await saveProjectField(p.id, f, v);
     }
   });
   wirePriority(body, { editable: isBoss(), save: (v) => saveProjectField(p.id, 'priority', v) });
   wireFilesSection(body, p);
+  body.querySelectorAll('.ship-grp-item').forEach(item => {
+    item.addEventListener('click', () => { if (item.dataset.id !== p.id) openProjectPanel(item.dataset.id); });
+  });
 }
 
 async function saveProjectField(id, field, value) {

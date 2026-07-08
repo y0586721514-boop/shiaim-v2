@@ -5,6 +5,21 @@
 /* ================= מסך "היום" =================
    התשובה ל"מה דורש אותי עכשיו?" בפחות מדקה. */
 
+/* התראות שהוסרו (snooze) — נשמר במכשיר. חוזרת אם הפריט משתנה. */
+const DISMISS_KEY = 'shiaim2_dismissed';
+function getDismissed() { try { return JSON.parse(localStorage.getItem(DISMISS_KEY) || '{}'); } catch (e) { return {}; } }
+function isAlertDismissed(item) {
+  const d = getDismissed()[item.id];
+  if (!d) return false;
+  return d >= (item.updatedAt || item.createdAt || ''); // הוסתר אחרי העדכון האחרון של הפריט
+}
+function dismissAlert(id) {
+  const d = getDismissed();
+  d[id] = new Date().toISOString();
+  localStorage.setItem(DISMISS_KEY, JSON.stringify(d));
+  renderTodayView();
+}
+
 function greetingByHour() {
   const h = new Date().getHours();
   if (h < 12) return 'בוקר טוב';
@@ -27,9 +42,9 @@ function renderTodayView() {
   const today = todayStr();
   const active = S.projects.filter(p => !p.completed);
 
-  const overdue = active.filter(p => p.deadline && p.deadline < today).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
-  const stuck = active.filter(p => !p.deadline && daysSince(p.updatedAt) >= 7);
-  const waitingIdeas = S.ideas.filter(i => !i.archived && daysSince(i.updatedAt) >= 30);
+  const overdue = active.filter(p => p.deadline && p.deadline < today && !isAlertDismissed(p)).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
+  const stuck = active.filter(p => !p.deadline && daysSince(p.updatedAt) >= 7 && !isAlertDismissed(p));
+  const waitingIdeas = S.ideas.filter(i => !i.archived && daysSince(i.updatedAt) >= 30 && !isAlertDismissed(i));
   const attention = overdue.length + stuck.length + waitingIdeas.length;
 
   const week = new Date(Date.now() + 7 * 86400000);
@@ -70,9 +85,9 @@ function renderTodayView() {
     html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
   } else {
     html += '<div class="dash-list">';
-    html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDateBoth(p.deadline), 'clock')).join('');
-    html += stuck.map(p => attnCard(p.id, 'project', 'amber', p.name, clientName(p.clientId), 'ללא דדליין · ' + daysSince(p.updatedAt) + ' ימים בלי עדכון', 'pause')).join('');
-    html += waitingIdeas.map(i => attnCard(i.id, 'idea', 'amber', i.name, '', 'רעיון מחכה להחלטה · ' + daysSince(i.createdAt) + ' ימים', 'ideas')).join('');
+    html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDateBoth(p.deadline), 'clock', true)).join('');
+    html += stuck.map(p => attnCard(p.id, 'project', 'amber', p.name, clientName(p.clientId), 'ללא דדליין · ' + daysSince(p.updatedAt) + ' ימים בלי עדכון', 'pause', true)).join('');
+    html += waitingIdeas.map(i => attnCard(i.id, 'idea', 'amber', i.name, '', 'רעיון מחכה להחלטה · ' + daysSince(i.createdAt) + ' ימים', 'ideas', true)).join('');
     html += '</div>';
   }
 
@@ -146,6 +161,11 @@ function renderTodayView() {
       }
     });
   });
+
+  // הסרת התראה בודדת (✕)
+  container.querySelectorAll('.dash-card-dismiss').forEach(b => {
+    b.addEventListener('click', (e) => { e.stopPropagation(); dismissAlert(b.dataset.dismiss); });
+  });
 }
 
 function kpiCard(iconName, value, label, tone, nav) {
@@ -163,7 +183,7 @@ function dashSection(iconName, title, count) {
     (count ? '<span class="dash-count">' + esc(count) + '</span>' : '') + '</div>';
 }
 
-function attnCard(id, kind, tone, title, sub, meta, iconName) {
+function attnCard(id, kind, tone, title, sub, meta, iconName, dismissable) {
   return (
     '<div class="dash-card tone-' + tone + '" data-kind="' + kind + '" data-id="' + esc(id) + '">' +
       '<span class="dash-card-icn">' + icon(iconName) + '</span>' +
@@ -171,6 +191,7 @@ function attnCard(id, kind, tone, title, sub, meta, iconName) {
         '<div class="dash-card-title">' + esc(title) + (sub ? ' <span class="dash-card-sub">· ' + esc(sub) + '</span>' : '') + '</div>' +
         '<div class="dash-card-meta">' + esc(meta) + '</div>' +
       '</div>' +
+      (dismissable ? '<button class="dash-card-dismiss" data-dismiss="' + esc(id) + '" title="הסר התראה">✕</button>' : '') +
       '<span class="dash-card-chev">' + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>' + '</span>' +
     '</div>'
   );

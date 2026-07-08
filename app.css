@@ -466,6 +466,12 @@ a { color: var(--navy-light); }
 .dash-card-meta { color: var(--text-sec); font-size: .88rem; margin-top: .12rem; }
 .dash-card-chev { color: var(--text-muted); flex-shrink: 0; display: inline-flex; }
 .dash-card-chev svg { width: 18px; height: 18px; }
+.dash-card-dismiss {
+  flex-shrink: 0; color: var(--text-muted); background: var(--surface-2);
+  border-radius: 50%; width: 28px; height: 28px; min-height: 28px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: .8rem;
+}
+.dash-card-dismiss:hover { background: var(--red-bg); color: var(--red); }
 
 .dash-empty {
   display: flex; align-items: center; gap: .6rem;

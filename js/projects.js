@@ -426,6 +426,7 @@ function renderDesignPanel() {
     fieldRowHtml({ label: 'סטטוס', field: 'status', value: d.status, type: 'select' }) +
     fieldRowHtml({ label: 'דדליין', field: 'deadline', value: d.deadline, display: d.deadline ? fmtDate(d.deadline) : '', type: 'date' }) +
     priorityRowHtml(d.priority, isBoss()) +
+    designFilesHtml(p, d) +
     logSectionHtml('importantInfo', d.importantInfo) +
     logSectionHtml('notes', d.notes);
 
@@ -434,6 +435,7 @@ function renderDesignPanel() {
     options: (f) => f === 'status' ? S.statuses.map(s => ({ value: s, label: s })) : null,
     save: (f, v) => saveDesignField(p.id, d.id, f, v)
   });
+  wireDesignFiles(body, p, d);
   wirePriority(body, { editable: isBoss(), save: (v) => saveDesignField(p.id, d.id, 'priority', v) });
   wireLogSections(body, {
     save: async (area, text) => {
@@ -468,6 +470,90 @@ async function saveDesignField(projectId, designId, field, value) {
     renderDesignPanel();
     toast(friendlyError(e.code), 'error');
   }
+}
+
+/* ---- קבצי עיצוב (הדמיות, קבצי מקור) ---- */
+
+function designFiles(d) { return d.files || []; }
+
+function designFilesHtml(p, d) {
+  const files = designFiles(d);
+  let gallery;
+  if (IS_DEMO) {
+    gallery = '<div class="doc-empty">📎 העלאת קבצים תעבוד אחרי חיבור לשרת האמיתי</div>';
+  } else if (!files.length) {
+    gallery = '<div class="doc-empty">אין עדיין קבצים לעיצוב הזה.</div>';
+  } else {
+    gallery = '<div class="idea-gallery">' + files.map(f => {
+      const isImg = String(f.mimeType || '').indexOf('image/') === 0;
+      return '<div class="idea-img" data-file-id="' + esc(f.id) + '">' +
+        (isImg
+          ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=' + esc(f.fileId) + '&sz=w400" alt="' + esc(f.name) + '" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'idea-img-fallback\',textContent:\'📎 ' + esc(f.name).replace(/'/g, '') + '\'}))"></a>'
+          : '<a class="idea-img-fallback" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + fileIcon(f.mimeType) + ' ' + esc(f.name) + '</a>') +
+        '<button class="idea-img-del" data-file-id="' + esc(f.id) + '" title="הסר">✕</button>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  return (
+    '<div class="log-section-title" style="margin-top:1.1rem">🎨 קבצי העיצוב</div>' +
+    gallery +
+    (IS_DEMO ? '' : '<div class="upload-row"><input type="file" id="design-file-input" style="display:none"><button class="btn-secondary" id="design-file-upload">⬆ העלה קובץ עיצוב</button></div>')
+  );
+}
+
+function wireDesignFiles(body, p, d) {
+  const input = body.querySelector('#design-file-input');
+  const btn = body.querySelector('#design-file-upload');
+  if (btn && input) {
+    btn.onclick = () => { input.value = ''; input.click(); };
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 20 * 1024 * 1024) { toast('הקובץ גדול מדי — עד 20MB', 'error'); return; }
+      await uploadDesignFile(p, d, file);
+    };
+  }
+  body.querySelectorAll('.idea-img-del').forEach(b => {
+    b.onclick = () => deleteDesignFileEntry(p, d, b.dataset.fileId);
+  });
+}
+
+async function uploadDesignFile(project, design, file) {
+  showSpinner(true);
+  try {
+    if (!project.folderId) {
+      const fr = await api('ensureFolder', { entity: 'project', id: project.id }, { noQueue: true });
+      if (fr.folderId) project.folderId = fr.folderId; else throw { code: fr.error || 'folder_failed' };
+    }
+    const res = await api('uploadFile', { folderId: project.folderId, filename: 'עיצוב ' + design.name + ' — ' + file.name, base64: await fileToBase64(file), mimeType: file.type }, { noQueue: true });
+    const f = res.file;
+    const entry = { id: uid(), fileId: f.id, name: f.name, url: f.url, mimeType: f.mimeType, size: f.size, date: new Date().toISOString(), user: S.user };
+    design.files = designFiles(design).concat([entry]);
+    const r2 = await api('updateDesignField', { projectId: project.id, designId: design.id, field: 'files', value: design.files });
+    if (r2.obj) mergeEntity('project', r2.obj);
+    toast('הקובץ הועלה ✓', 'success');
+    renderDesignPanel();
+  } catch (e) {
+    toast(e.code === 'network' ? 'העלאת קבצים דורשת חיבור לאינטרנט' : friendlyError(e.code), 'error');
+  } finally {
+    showSpinner(false);
+  }
+}
+
+function deleteDesignFileEntry(project, design, fileEntryId) {
+  const f = designFiles(design).find(x => x.id === fileEntryId);
+  if (!f) return;
+  confirmModal({ title: 'הסרת קובץ', message: 'להסיר את "' + f.name + '"? הקובץ יעבור לסל האשפה ב-Drive.', btnLabel: 'הסר' }).then(async ok => {
+    if (!ok) return;
+    design.files = designFiles(design).filter(x => x.id !== fileEntryId);
+    renderDesignPanel();
+    try {
+      const r2 = await api('updateDesignField', { projectId: project.id, designId: design.id, field: 'files', value: design.files });
+      if (r2.obj) mergeEntity('project', r2.obj);
+      if (f.fileId) api('deleteFile', { fileId: f.fileId }, { noQueue: true }).catch(() => {});
+      toast('הקובץ הוסר ✓', 'success');
+    } catch (e) { toast(friendlyError(e.code), 'error'); }
+  });
 }
 
 function deleteDesignFlow(projectId, designId) {

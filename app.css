@@ -158,11 +158,11 @@ a { color: var(--navy-light); }
 .header-brand { display: flex; align-items: center; gap: .6rem; min-width: 0; }
 .header-logo {
   width: 38px; height: 38px; flex-shrink: 0;
-  background: var(--gold);
-  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--navy); font-weight: 800; font-size: 1.2rem;
+  border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--gold);
+  background: #fff;
 }
+.header-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .app-title { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .app-title b { color: var(--gold-light); }
 .header-actions { display: flex; align-items: center; gap: .45rem; }

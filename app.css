@@ -850,6 +850,24 @@ a { color: var(--navy-light); }
 .dp-copy-check { display: flex; align-items: center; gap: .5rem; font-size: .9rem; color: var(--text-sec); margin-top: .3rem; cursor: pointer; }
 .dp-link { cursor: pointer; }
 
+/* ================= אולפן הדמיה ================= */
+.studio-sub { font-weight: 700; color: var(--navy); margin: .3rem 0 .2rem; }
+.ref-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.ref-chip {
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-sec);
+  border-radius: 999px; padding: .35rem .8rem; font-size: .85rem; font-weight: 600; min-height: 34px;
+}
+.ref-chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+.studio-btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
+.studio-btns .btn-secondary, .studio-btns .btn-gold { min-height: 40px; }
+.studio-prompt { width: 100%; margin-top: .3rem; font-family: inherit; line-height: 1.5; resize: vertical; }
+.studio-versions { display: flex; flex-direction: column; gap: .5rem; }
+.studio-ver { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .5rem .7rem; background: var(--surface-2); }
+.studio-ver-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .8rem; color: var(--text-muted); }
+.studio-ver-actions { display: inline-flex; gap: .4rem; flex-shrink: 0; }
+.studio-ver-btn { background: none; border: none; color: var(--navy-light); font-weight: 700; font-size: .82rem; cursor: pointer; padding: .1rem .3rem; }
+.studio-ver-preview { margin-top: .3rem; font-size: .85rem; color: var(--text-sec); white-space: pre-wrap; }
+
 /* ================= מחשבון ייבוא ================= */
 
 .calc-wrap { display: flex; flex-direction: column; gap: .5rem; }

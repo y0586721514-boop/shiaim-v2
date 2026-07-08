@@ -555,21 +555,28 @@ function renderDesignPanel() {
     fieldRowHtml({ label: 'מי מטפל', field: 'assignedTo', value: d.assignedTo }) +
     fieldRowHtml({ label: 'דדליין', field: 'deadline', value: d.deadline, display: d.deadline ? fmtDateBoth(d.deadline) : '', type: 'date' }) +
     priorityRowHtml(d.priority, isBoss()) +
-    fieldRowHtml({ label: 'פרומפט AI', field: 'aiPrompt', value: d.aiPrompt, type: 'textarea' }) +
+    renderStudioHtml(p, d) +
     designFilesHtml(p, d) +
     designQAHtml(d) +
     logSectionHtml('importantInfo', d.importantInfo) +
     logSectionHtml('notes', d.notes);
 
   wireInlineEdits(body, {
-    getValue: (f) => d[f],
+    getValue: (f) => {
+      if (f.indexOf('pd.') === 0) return (d.productData || {})[f.slice(3)];
+      return d[f];
+    },
     options: (f) => {
       if (f === 'status') return designStatusOptions();
       if (f === 'assetType') return assetTypeOptions();
       return null;
     },
-    save: (f, v) => saveDesignField(p.id, d.id, f, v)
+    save: (f, v) => {
+      if (f.indexOf('pd.') === 0) return saveDesignNested(p, d, 'productData', f.slice(3), v);
+      return saveDesignField(p.id, d.id, f, v);
+    }
   });
+  wireStudio(body, p, d);
   wireDesignFiles(body, p, d);
   wireDesignQA(body, p, d);
   wirePriority(body, { editable: isBoss(), save: (v) => saveDesignField(p.id, d.id, 'priority', v) });

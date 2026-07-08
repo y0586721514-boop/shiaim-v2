@@ -5,7 +5,7 @@
    מעלים גרסה כאן בכל פריסה — והלקוחות מתעדכנים אוטומטית.
    ================================================================ */
 
-const CACHE_VERSION = 'shiaim-v2.14.0';
+const CACHE_VERSION = 'shiaim-v2.15.0';
 
 const ASSETS = [
   './',
@@ -23,6 +23,7 @@ const ASSETS = [
   './js/panels.js',
   './js/projects.js',
   './js/design.js',
+  './js/design-studio.js',
   './js/documents.js',
   './js/calculator.js',
   './js/wings.js',

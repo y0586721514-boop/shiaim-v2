@@ -635,6 +635,24 @@ a { color: var(--navy-light); }
 .doc-notes-title { font-weight: 700; color: #8a5b00; margin-bottom: .4rem; }
 .doc-notes.doc-notes-empty .doc-notes-title { color: var(--text-muted); }
 
+/* ================= גלריית תמונות רעיון ================= */
+
+.idea-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .5rem; margin-top: .4rem; }
+.idea-img { position: relative; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface-2); }
+.idea-img img { width: 100%; height: 120px; object-fit: cover; display: block; }
+.idea-img-fallback {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 70px; padding: .6rem; color: var(--navy-med); font-weight: 600;
+  text-decoration: none; word-break: break-word; font-size: .85rem;
+}
+.idea-img-del {
+  position: absolute; top: .25rem; inset-inline-start: .25rem;
+  background: rgba(16,27,62,.75); color: #fff; border-radius: 50%;
+  width: 26px; height: 26px; min-height: 26px; font-size: .8rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.idea-img-del:hover { background: var(--red); }
+
 /* ================= מחשבון ייבוא ================= */
 
 .calc-wrap { display: flex; flex-direction: column; gap: .5rem; }

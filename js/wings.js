@@ -177,6 +177,7 @@ function renderIdeaPanel() {
       esc(fmtDate(i.createdAt) + ' ע"י ' + userDisplay(i.createdBy)) + '</span></div>' +
     (i.archived ? '<div class="field-row"><span class="field-label">בארכיון</span><span class="field-value readonly">' +
       esc((i.archiveReason || 'ללא סיבה') + ' · ' + fmtDate(i.archivedAt)) + '</span></div>' : '') +
+    ideaImagesHtml(i) +
     logSectionHtml('notes', i.notes);
 
   wireInlineEdits(body, {
@@ -198,6 +199,7 @@ function renderIdeaPanel() {
       } catch (e) { toast(friendlyError(e.code), 'error'); }
     }
   });
+  wireIdeaImages(body, i);
 
   const footer = $('#idea-panel-footer');
   footer.innerHTML = i.archived
@@ -211,6 +213,92 @@ function renderIdeaPanel() {
   if (bA) bA.onclick = () => archiveIdeaFlow(i.id);
   if (bR) bR.onclick = () => restoreIdeaFlow(i.id);
   if (bD) bD.onclick = () => deleteIdeaFlow(i.id);
+}
+
+/* ---- תמונות והדמיות של הרעיון ---- */
+
+function ideaImages(i) { return i.images || []; }
+
+function ideaImagesHtml(i) {
+  const imgs = ideaImages(i);
+  let gallery;
+  if (IS_DEMO) {
+    gallery = '<div class="doc-empty">🖼️ העלאת תמונות תעבוד אחרי חיבור לשרת האמיתי</div>';
+  } else if (!imgs.length) {
+    gallery = '<div class="doc-empty">אין עדיין תמונות. העלה הדמיה או תמונה של הרעיון/המוצר.</div>';
+  } else {
+    gallery = '<div class="idea-gallery">' + imgs.map(f => {
+      const isImg = String(f.mimeType || '').indexOf('image/') === 0;
+      return '<div class="idea-img" data-img-id="' + esc(f.id) + '">' +
+        (isImg
+          ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=' + esc(f.fileId) + '&sz=w400" alt="' + esc(f.name) + '" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'idea-img-fallback\',textContent:\'🖼️ ' + esc(f.name).replace(/'/g, '') + '\'}))"></a>'
+          : '<a class="idea-img-fallback" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + fileIcon(f.mimeType) + ' ' + esc(f.name) + '</a>') +
+        '<button class="idea-img-del" data-img-id="' + esc(f.id) + '" title="הסר">✕</button>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  return (
+    '<div class="log-section-title" style="margin-top:1.1rem">🖼️ תמונות והדמיות</div>' +
+    gallery +
+    (IS_DEMO ? '' : '<div class="upload-row"><input type="file" accept="image/*,application/pdf" id="idea-img-input" style="display:none"><button class="btn-secondary" id="idea-img-upload">⬆ העלה תמונה / הדמיה</button></div>')
+  );
+}
+
+function wireIdeaImages(body, i) {
+  const input = body.querySelector('#idea-img-input');
+  const btn = body.querySelector('#idea-img-upload');
+  if (btn && input) {
+    btn.onclick = () => { input.value = ''; input.click(); };
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 20 * 1024 * 1024) { toast('הקובץ גדול מדי — עד 20MB', 'error'); return; }
+      await uploadIdeaImage(i, file);
+    };
+  }
+  body.querySelectorAll('.idea-img-del').forEach(b => {
+    b.onclick = () => deleteIdeaImage(i, b.dataset.imgId);
+  });
+}
+
+async function uploadIdeaImage(idea, file) {
+  showSpinner(true);
+  try {
+    // ודא שלרעיון יש תיקיית Drive (נוצרת בעת הצורך)
+    if (!idea.folderId) {
+      const fr = await api('ensureFolder', { entity: 'idea', id: idea.id }, { noQueue: true });
+      if (fr.folderId) idea.folderId = fr.folderId;
+      else throw { code: fr.error || 'folder_failed' };
+    }
+    const res = await api('uploadFile', { folderId: idea.folderId, filename: file.name, base64: await fileToBase64(file), mimeType: file.type }, { noQueue: true });
+    const f = res.file;
+    const entry = { id: uid(), fileId: f.id, name: f.name, url: f.url, mimeType: f.mimeType, size: f.size, date: new Date().toISOString(), user: S.user };
+    const images = ideaImages(idea).concat([entry]);
+    idea.images = images;
+    await api('updateField', { entity: 'idea', id: idea.id, field: 'images', value: images });
+    toast('התמונה הועלתה ✓', 'success');
+    renderIdeaPanel();
+  } catch (e) {
+    toast(e.code === 'network' ? 'העלאת תמונות דורשת חיבור לאינטרנט' : friendlyError(e.code), 'error');
+  } finally {
+    showSpinner(false);
+  }
+}
+
+function deleteIdeaImage(idea, imgId) {
+  const img = ideaImages(idea).find(x => x.id === imgId);
+  if (!img) return;
+  confirmModal({ title: 'הסרת תמונה', message: 'להסיר את "' + img.name + '"? הקובץ יעבור לסל האשפה ב-Drive.', btnLabel: 'הסר' }).then(async ok => {
+    if (!ok) return;
+    const images = ideaImages(idea).filter(x => x.id !== imgId);
+    idea.images = images;
+    renderIdeaPanel();
+    try {
+      await api('updateField', { entity: 'idea', id: idea.id, field: 'images', value: images });
+      if (img.fileId) api('deleteFile', { fileId: img.fileId }, { noQueue: true }).catch(() => {});
+      toast('התמונה הוסרה ✓', 'success');
+    } catch (e) { toast(friendlyError(e.code), 'error'); }
+  });
 }
 
 /** רעיון → פרויקט בלחיצה אחת: מעביר שם, לקוח והערות */

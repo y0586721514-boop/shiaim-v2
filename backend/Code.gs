@@ -114,6 +114,7 @@ function doPost(e) {
         case 'importData':     return jsonOut_(handleImportData_(user, role, data));
 
         // קבצים ב-Drive
+        case 'ensureFolder': return jsonOut_(handleEnsureFolder_(user, data));
         case 'uploadFile': return jsonOut_(handleUploadFile_(user, data));
         case 'deleteFile': return jsonOut_(handleDeleteFile_(user, role, data));
 
@@ -767,6 +768,29 @@ function handleExportBackup_() {
 // ================================================================
 // קבצים ב-Google Drive
 // ================================================================
+
+/**
+ * מוודא שלישות (למשל רעיון) יש תיקיית Drive, ויוצר אחת אם צריך.
+ * מאפשר להעלות קבצים גם לרעיונות/לקוחות/ספקים, לא רק לפרויקטים.
+ */
+function handleEnsureFolder_(user, data) {
+  var entity = String(data.entity || '');
+  var sheetName = ENTITY_SHEETS[entity];
+  if (!sheetName) return { ok: false, error: 'bad_entity' };
+  var found = findEntityRow_(sheetName, data.id);
+  if (!found || !found.obj) return { ok: false, error: 'not_found' };
+  var obj = found.obj;
+  if (obj.folderId) return { ok: true, folderId: obj.folderId };
+  try {
+    var prefix = { idea: 'רעיון — ', client: 'לקוח — ', supplier: 'ספק — ' }[entity] || '';
+    var folder = getRootFolder_().createFolder(prefix + (obj.name || 'ללא שם'));
+    obj.folderId = folder.getId();
+    writeEntity_(sheetName, obj, found.rowIndex);
+    return { ok: true, folderId: obj.folderId };
+  } catch (e) {
+    return { ok: false, error: 'folder_failed' };
+  }
+}
 
 function handleGetFiles_(data) {
   var folderId = String(data.folderId || '');

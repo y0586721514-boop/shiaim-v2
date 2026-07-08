@@ -5,88 +5,101 @@
 /* ================= מסך "היום" =================
    התשובה ל"מה דורש אותי עכשיו?" בפחות מדקה. */
 
+function greetingByHour() {
+  const h = new Date().getHours();
+  if (h < 12) return 'בוקר טוב';
+  if (h < 17) return 'צהריים טובים';
+  if (h < 21) return 'ערב טוב';
+  return 'לילה טוב';
+}
+
+function todayDateLabel() {
+  try { return new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch (e) { return fmtDate(new Date().toISOString()); }
+}
+
 function renderTodayView() {
   const container = $('#view-container');
   const today = todayStr();
   const active = S.projects.filter(p => !p.completed);
 
-  // דורש תשומת לב
-  const overdue = active.filter(p => p.deadline && p.deadline < today)
-    .sort((a, b) => a.deadline < b.deadline ? -1 : 1);
+  const overdue = active.filter(p => p.deadline && p.deadline < today).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
   const stuck = active.filter(p => !p.deadline && daysSince(p.updatedAt) >= 7);
   const waitingIdeas = S.ideas.filter(i => !i.archived && daysSince(i.updatedAt) >= 30);
+  const attention = overdue.length + stuck.length + waitingIdeas.length;
 
-  // דדליינים השבוע
   const week = new Date(Date.now() + 7 * 86400000);
   const weekStr = week.getFullYear() + '-' + String(week.getMonth() + 1).padStart(2, '0') + '-' + String(week.getDate()).padStart(2, '0');
-  const thisWeek = active.filter(p => p.deadline && p.deadline >= today && p.deadline <= weekStr)
-    .sort((a, b) => a.deadline < b.deadline ? -1 : 1);
+  const thisWeek = active.filter(p => p.deadline && p.deadline >= today && p.deadline <= weekStr).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
 
-  // מה השתנה מאז הביקור האחרון
+  // הגעות צפויות (14 יום)
+  const twoWeeks = new Date(Date.now() + 14 * 86400000);
+  const twoWeeksStr = twoWeeks.getFullYear() + '-' + String(twoWeeks.getMonth() + 1).padStart(2, '0') + '-' + String(twoWeeks.getDate()).padStart(2, '0');
+  const arrivals = active.filter(p => p.etaIsrael && p.etaIsrael >= today && p.etaIsrael <= twoWeeksStr).sort((a, b) => a.etaIsrael < b.etaIsrael ? -1 : 1);
+
   const newChanges = unseenChanges().slice(0, 8);
-
-  // שורת סיכום
   const monthStart = today.slice(0, 8) + '01';
   const doneThisMonth = S.projects.filter(p => p.completed && p.completedAt && p.completedAt.slice(0, 10) >= monthStart).length;
   const openIdeas = S.ideas.filter(i => !i.archived).length;
-
-  const hello = S.displayName ? 'שלום, ' + S.displayName : 'שלום';
+  const upcomingArrivals = active.filter(p => p.etaIsrael && p.etaIsrael >= today).length;
 
   let html =
-    '<div class="page-header"><div class="page-header-text">' +
-      '<span class="page-title">☀️ ' + esc(hello) + '</span>' +
-    '</div></div>' +
-    '<div class="summary-line">📋 <b>' + active.length + '</b> פרויקטים פעילים · 💡 <b>' + openIdeas + '</b> רעיונות פתוחים · ✅ <b>' + doneThisMonth + '</b> הסתיימו החודש</div>';
+    '<div class="dash-head">' +
+      '<div class="dash-greet">' + esc(greetingByHour()) + (S.displayName ? ', ' + esc(S.displayName) : '') + '</div>' +
+      '<div class="dash-date">' + esc(todayDateLabel()) + '</div>' +
+    '</div>' +
 
-  // --- דורש תשומת לב ---
-  html += '<div class="today-section"><div class="today-section-title">🚨 דורש תשומת לב</div>';
-  if (!overdue.length && !stuck.length && !waitingIdeas.length) {
-    html += '<div class="today-empty">✅ הכל בשליטה — אין פרויקטים תקועים או באיחור</div>';
+    '<div class="kpi-row">' +
+      kpiCard('projects', active.length, 'פרויקטים פעילים', 'ink') +
+      kpiCard('alert', attention, 'דורשים טיפול', attention ? 'red' : 'ink') +
+      kpiCard('truck', upcomingArrivals, 'הגעות צפויות', 'gold') +
+      kpiCard('check', doneThisMonth, 'הסתיימו החודש', 'green') +
+    '</div>';
+
+  // דורש תשומת לב
+  html += dashSection('alert', 'דורש תשומת לב', attention ? attention + '' : '');
+  if (!attention) {
+    html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
   } else {
-    html += overdue.map(p =>
-      '<div class="today-card urgent" data-kind="project" data-id="' + esc(p.id) + '">' +
-        '<b>' + esc(p.name) + '</b>' +
-        (clientName(p.clientId) ? '<span class="reason">👤 ' + esc(clientName(p.clientId)) + '</span>' : '') +
-        '<span class="tag tag-deadline-overdue">⚠️ הדדליין עבר — ' + fmtDate(p.deadline) + '</span>' +
-      '</div>').join('');
-    html += stuck.map(p =>
-      '<div class="today-card warn" data-kind="project" data-id="' + esc(p.id) + '">' +
-        '<b>' + esc(p.name) + '</b>' +
-        '<span class="reason">😴 בלי דדליין ובלי עדכון ' + daysSince(p.updatedAt) + ' ימים</span>' +
-      '</div>').join('');
-    html += waitingIdeas.map(i =>
-      '<div class="today-card warn" data-kind="idea" data-id="' + esc(i.id) + '">' +
-        '<b>💡 ' + esc(i.name) + '</b>' +
-        '<span class="tag tag-waiting">רעיון מחכה להחלטה — ' + daysSince(i.createdAt) + ' ימים</span>' +
-      '</div>').join('');
+    html += '<div class="dash-list">';
+    html += overdue.map(p => attnCard(p.id, 'project', 'red', p.name, clientName(p.clientId), 'הדדליין עבר · ' + fmtDate(p.deadline), 'clock')).join('');
+    html += stuck.map(p => attnCard(p.id, 'project', 'amber', p.name, clientName(p.clientId), 'ללא דדליין · ' + daysSince(p.updatedAt) + ' ימים בלי עדכון', 'pause')).join('');
+    html += waitingIdeas.map(i => attnCard(i.id, 'idea', 'amber', i.name, '', 'רעיון מחכה להחלטה · ' + daysSince(i.createdAt) + ' ימים', 'ideas')).join('');
+    html += '</div>';
   }
-  html += '</div>';
 
-  // --- דדליינים השבוע ---
-  html += '<div class="today-section"><div class="today-section-title">📅 דדליינים השבוע</div>';
-  html += thisWeek.length ? thisWeek.map(p =>
-    '<div class="today-card info" data-kind="project" data-id="' + esc(p.id) + '">' +
-      '<b>' + esc(p.name) + '</b>' +
-      (p.status ? '<span class="tag tag-status">' + esc(p.status) + '</span>' : '') +
-      '<span class="tag tag-deadline-soon">⏰ ' + fmtDate(p.deadline) + '</span>' +
-    '</div>').join('')
-    : '<div class="today-empty">אין דדליינים השבוע</div>';
-  html += '</div>';
+  // השבוע — דדליינים + הגעות
+  const weekItems = thisWeek.length || arrivals.length;
+  html += dashSection('calendar', 'השבוע', weekItems ? (thisWeek.length + arrivals.length) + '' : '');
+  if (!weekItems) {
+    html += '<div class="dash-empty">' + icon('calendar') + '<span>אין דדליינים או הגעות בשבוע הקרוב</span></div>';
+  } else {
+    html += '<div class="dash-list">';
+    html += thisWeek.map(p => attnCard(p.id, 'project', 'ink', p.name, p.status, 'דדליין · ' + fmtDate(p.deadline), 'clock')).join('');
+    html += arrivals.map(p => attnCard(p.id, 'project', 'gold', p.name, clientName(p.clientId), 'צפי הגעה לישראל · ' + fmtDate(p.etaIsrael), 'truck')).join('');
+    html += '</div>';
+  }
 
-  // --- מה השתנה מאז הביקור האחרון ---
-  html += '<div class="today-section"><div class="today-section-title">🔔 מה חדש מאז הביקור האחרון</div>';
-  html += newChanges.length ? newChanges.map(c =>
-    '<div class="today-card" data-kind="change" data-entity-type="' + esc(c.entityType) + '" data-id="' + esc(c.entityId) + '">' +
-      '<b>' + esc(userDisplay(c.user)) + '</b>' +
-      '<span class="reason">' + esc((ENTITY_LABELS[c.entityType] || '') + ' "' + c.entityName + '" — ' + changeTypeText(c.changeType)) + '</span>' +
-      '<span class="reason">' + relTime(c.ts) + '</span>' +
-    '</div>').join('')
-    : '<div class="today-empty">אין עדכונים חדשים — הכל מעודכן</div>';
-  html += '</div>';
+  // עדכונים אחרונים
+  html += dashSection('bell', 'עדכונים אחרונים', newChanges.length ? newChanges.length + '' : '');
+  if (!newChanges.length) {
+    html += '<div class="dash-empty">' + icon('check') + '<span>אין עדכונים חדשים — הכל מעודכן</span></div>';
+  } else {
+    html += '<div class="dash-list">';
+    html += newChanges.map(c =>
+      '<div class="dash-card upd" data-kind="change" data-entity-type="' + esc(c.entityType) + '" data-id="' + esc(c.entityId) + '">' +
+        '<span class="dash-card-icn">' + icon('bell') + '</span>' +
+        '<div class="dash-card-body">' +
+          '<div class="dash-card-title">' + esc((ENTITY_LABELS[c.entityType] || '') + ' ' + c.entityName) + '</div>' +
+          '<div class="dash-card-meta">' + esc(userDisplay(c.user) + ' · ' + changeTypeText(c.changeType) + ' · ' + relTime(c.ts)) + '</div>' +
+        '</div>' +
+      '</div>').join('');
+    html += '</div>';
+  }
 
   container.innerHTML = html;
 
-  container.querySelectorAll('.today-card').forEach(card => {
+  container.querySelectorAll('.dash-card').forEach(card => {
     card.addEventListener('click', () => {
       const kind = card.dataset.kind, id = card.dataset.id;
       if (kind === 'project') openProjectPanel(id);
@@ -101,6 +114,34 @@ function renderTodayView() {
       }
     });
   });
+}
+
+function kpiCard(iconName, value, label, tone) {
+  return (
+    '<div class="kpi-card2 kpi-' + tone + '">' +
+      '<span class="kpi-icn">' + icon(iconName) + '</span>' +
+      '<span class="kpi-num">' + value + '</span>' +
+      '<span class="kpi-lbl">' + esc(label) + '</span>' +
+    '</div>'
+  );
+}
+
+function dashSection(iconName, title, count) {
+  return '<div class="dash-section-head">' + icon(iconName) + '<span>' + esc(title) + '</span>' +
+    (count ? '<span class="dash-count">' + esc(count) + '</span>' : '') + '</div>';
+}
+
+function attnCard(id, kind, tone, title, sub, meta, iconName) {
+  return (
+    '<div class="dash-card tone-' + tone + '" data-kind="' + kind + '" data-id="' + esc(id) + '">' +
+      '<span class="dash-card-icn">' + icon(iconName) + '</span>' +
+      '<div class="dash-card-body">' +
+        '<div class="dash-card-title">' + esc(title) + (sub ? ' <span class="dash-card-sub">· ' + esc(sub) + '</span>' : '') + '</div>' +
+        '<div class="dash-card-meta">' + esc(meta) + '</div>' +
+      '</div>' +
+      '<span class="dash-card-chev">' + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>' + '</span>' +
+    '</div>'
+  );
 }
 
 /* ================= אגף רעיונות =================

@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="app.css?v=2.3.0">
+  <link rel="stylesheet" href="app.css?v=2.4.0">
 </head>
 <body>
 
@@ -67,12 +67,12 @@
       </div>
     </div>
     <nav class="sidebar-nav" id="sidebar-nav">
-      <button class="sidebar-nav-item" data-view="today">☀️<span class="nav-label">היום</span></button>
-      <button class="sidebar-nav-item" data-view="projects">📋<span class="nav-label">פרויקטים</span><span class="nav-count" id="nav-count-projects"></span></button>
-      <button class="sidebar-nav-item" data-view="ideas">💡<span class="nav-label">רעיונות</span><span class="nav-count" id="nav-count-ideas"></span></button>
-      <button class="sidebar-nav-item" data-view="clients">👤<span class="nav-label">לקוחות</span></button>
-      <button class="sidebar-nav-item" data-view="suppliers">📦<span class="nav-label">מוצרים וספקים</span></button>
-      <button class="sidebar-nav-item" data-view="settings">⚙️<span class="nav-label">הגדרות</span></button>
+      <button class="sidebar-nav-item" data-view="today"><span class="nav-icn" data-icon="today"></span><span class="nav-label">היום</span></button>
+      <button class="sidebar-nav-item" data-view="projects"><span class="nav-icn" data-icon="projects"></span><span class="nav-label">פרויקטים</span><span class="nav-count" id="nav-count-projects"></span></button>
+      <button class="sidebar-nav-item" data-view="ideas"><span class="nav-icn" data-icon="ideas"></span><span class="nav-label">רעיונות</span><span class="nav-count" id="nav-count-ideas"></span></button>
+      <button class="sidebar-nav-item" data-view="clients"><span class="nav-icn" data-icon="clients"></span><span class="nav-label">לקוחות</span></button>
+      <button class="sidebar-nav-item" data-view="suppliers"><span class="nav-icn" data-icon="suppliers"></span><span class="nav-label">מוצרים וספקים</span></button>
+      <button class="sidebar-nav-item" data-view="settings"><span class="nav-icn" data-icon="settings"></span><span class="nav-label">הגדרות</span></button>
     </nav>
   </aside>
 
@@ -86,7 +86,7 @@
       </div>
       <div class="header-actions">
         <span id="offline-chip" class="offline-chip hidden" title="שינויים שנשמרו במכשיר ויישלחו כשיהיה חיבור">⏳ ממתין לסנכרון <b id="offline-count">0</b></span>
-        <button id="changes-btn" class="changes-btn" title="יומן שינויים">🔔<span id="changes-badge" class="changes-badge hidden">0</span></button>
+        <button id="changes-btn" class="changes-btn" title="יומן שינויים"><span class="nav-icn" data-icon="bell"></span><span id="changes-badge" class="changes-badge hidden">0</span></button>
         <span id="user-chip" class="user-chip"><span class="role-dot"></span><span id="user-name">—</span></span>
         <button id="logout-btn" class="btn-header">יציאה</button>
       </div>
@@ -99,11 +99,11 @@
 
     <!-- ניווט תחתון לנייד -->
     <nav class="bottom-nav" id="bottom-nav">
-      <button class="bottom-nav-item" data-view="today">☀️<span>היום</span></button>
-      <button class="bottom-nav-item" data-view="projects">📋<span>פרויקטים</span></button>
-      <button class="bottom-nav-item" data-view="ideas">💡<span>רעיונות</span></button>
-      <button class="bottom-nav-item" data-view="clients">👤<span>לקוחות</span></button>
-      <button class="bottom-nav-item" data-view="more">⋯<span>עוד</span></button>
+      <button class="bottom-nav-item" data-view="today"><span class="nav-icn" data-icon="today"></span><span>היום</span></button>
+      <button class="bottom-nav-item" data-view="projects"><span class="nav-icn" data-icon="projects"></span><span>פרויקטים</span></button>
+      <button class="bottom-nav-item" data-view="ideas"><span class="nav-icn" data-icon="ideas"></span><span>רעיונות</span></button>
+      <button class="bottom-nav-item" data-view="clients"><span class="nav-icn" data-icon="clients"></span><span>לקוחות</span></button>
+      <button class="bottom-nav-item" data-view="more"><span class="nav-icn" data-icon="more"></span><span>עוד</span></button>
     </nav>
 
     <button id="fab" class="fab" title="הוספה">+</button>
@@ -182,16 +182,16 @@
 <!-- ============ מודלים ============ -->
 <div id="modal-root"></div>
 
-<script src="js/config.js?v=2.3.0"></script>
-<script src="js/util.js?v=2.3.0"></script>
-<script src="js/api.js?v=2.3.0"></script>
-<script src="js/state.js?v=2.3.0"></script>
-<script src="js/panels.js?v=2.3.0"></script>
-<script src="js/projects.js?v=2.3.0"></script>
-<script src="js/documents.js?v=2.3.0"></script>
-<script src="js/calculator.js?v=2.3.0"></script>
-<script src="js/wings.js?v=2.3.0"></script>
-<script src="js/settings.js?v=2.3.0"></script>
-<script src="js/main.js?v=2.3.0"></script>
+<script src="js/config.js?v=2.4.0"></script>
+<script src="js/util.js?v=2.4.0"></script>
+<script src="js/api.js?v=2.4.0"></script>
+<script src="js/state.js?v=2.4.0"></script>
+<script src="js/panels.js?v=2.4.0"></script>
+<script src="js/projects.js?v=2.4.0"></script>
+<script src="js/documents.js?v=2.4.0"></script>
+<script src="js/calculator.js?v=2.4.0"></script>
+<script src="js/wings.js?v=2.4.0"></script>
+<script src="js/settings.js?v=2.4.0"></script>
+<script src="js/main.js?v=2.4.0"></script>
 </body>
 </html>

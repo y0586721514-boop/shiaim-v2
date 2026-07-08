@@ -158,6 +158,8 @@ async function enterApp() {
 
 async function boot() {
   $('#version-label').textContent = APP_VERSION + (IS_DEMO ? ' · מצב הדגמה' : '');
+  // אכלוס אייקוני הניווט (SVG בקו אחיד)
+  $$('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
   applyBigText();
   wirePanelChrome();
   updateOfflineChip();

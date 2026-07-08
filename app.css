@@ -142,6 +142,7 @@ a { color: var(--navy-light); }
 }
 .sidebar-nav-item:hover { background: rgba(255,255,255,.08); }
 .sidebar-nav-item.active { background: rgba(201,168,76,.18); color: var(--gold-light); font-weight: 700; }
+.sidebar-nav-item .icn { width: 21px; height: 21px; }
 .nav-label { flex: 1; }
 .nav-count { font-size: .8rem; background: rgba(255,255,255,.14); border-radius: 999px; padding: 0 .55em; min-width: 1.6em; text-align: center; }
 
@@ -180,7 +181,8 @@ a { color: var(--navy-light); }
 }
 .role-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
 
-.changes-btn { position: relative; font-size: 1.25rem; padding: .2rem .5rem; }
+.changes-btn { position: relative; padding: .3rem .5rem; color: #fff; }
+.changes-btn .icn { width: 22px; height: 22px; }
 .changes-badge {
   position: absolute; top: 0; left: 0;
   background: var(--red); color: #fff;
@@ -361,6 +363,83 @@ a { color: var(--navy-light); }
 .today-card.warn { border-inline-start: 6px solid var(--amber); }
 .today-card.info { border-inline-start: 6px solid var(--pri-1); }
 .today-empty { color: var(--text-muted); background: var(--green-bg); border-radius: var(--radius); padding: .7rem 1rem; }
+
+/* ================= אייקונים ================= */
+.icn { width: 20px; height: 20px; display: inline-block; vertical-align: middle; flex-shrink: 0; }
+.nav-icn { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ================= דשבורד "היום" — לוק מקצועי ================= */
+
+.dash-head { margin-bottom: 1.3rem; }
+.dash-greet { font-size: 1.6rem; font-weight: 800; color: var(--navy); letter-spacing: -0.01em; }
+.dash-date { color: var(--text-muted); font-size: .98rem; margin-top: .15rem; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem; margin-bottom: 1.6rem; }
+@media (max-width: 640px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.kpi-card2 {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: .9rem 1rem; display: flex; flex-direction: column; gap: .1rem;
+  position: relative; overflow: hidden;
+}
+.kpi-card2::before { content: ''; position: absolute; top: 0; inset-inline-start: 0; width: 100%; height: 3px; background: var(--border-strong); }
+.kpi-card2.kpi-ink::before { background: var(--navy); }
+.kpi-card2.kpi-red::before { background: var(--red); }
+.kpi-card2.kpi-gold::before { background: var(--gold); }
+.kpi-card2.kpi-green::before { background: var(--green); }
+.kpi-icn { color: var(--text-muted); margin-bottom: .3rem; }
+.kpi-card2.kpi-red .kpi-icn { color: var(--red); }
+.kpi-card2.kpi-gold .kpi-icn { color: var(--gold-dark); }
+.kpi-card2.kpi-green .kpi-icn { color: var(--green); }
+.kpi-card2.kpi-ink .kpi-icn { color: var(--navy-med); }
+.kpi-num { font-size: 2rem; font-weight: 800; color: var(--navy); line-height: 1; }
+.kpi-lbl { color: var(--text-sec); font-size: .88rem; font-weight: 500; }
+
+.dash-section-head {
+  display: flex; align-items: center; gap: .5rem;
+  color: var(--navy); font-weight: 700; font-size: 1.08rem;
+  margin: 1.4rem 0 .7rem;
+}
+.dash-section-head .icn { color: var(--gold-dark); }
+.dash-count {
+  background: var(--surface-2); color: var(--text-sec);
+  border-radius: 999px; font-size: .8rem; font-weight: 700;
+  min-width: 1.5em; height: 1.5em; display: inline-flex; align-items: center; justify-content: center; padding: 0 .5em;
+}
+
+.dash-list { display: flex; flex-direction: column; gap: .55rem; }
+.dash-card {
+  display: flex; align-items: center; gap: .8rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--border-strong);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: .8rem 1rem; cursor: pointer;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.dash-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.dash-card.tone-red { border-inline-start-color: var(--red); }
+.dash-card.tone-amber { border-inline-start-color: var(--amber); }
+.dash-card.tone-gold { border-inline-start-color: var(--gold); }
+.dash-card.tone-green { border-inline-start-color: var(--green); }
+.dash-card.tone-ink { border-inline-start-color: var(--navy); }
+.dash-card-icn { color: var(--text-muted); display: inline-flex; flex-shrink: 0; }
+.dash-card.tone-red .dash-card-icn { color: var(--red); }
+.dash-card.tone-amber .dash-card-icn { color: var(--amber); }
+.dash-card.tone-gold .dash-card-icn { color: var(--gold-dark); }
+.dash-card.tone-ink .dash-card-icn { color: var(--navy-med); }
+.dash-card-body { flex: 1; min-width: 0; }
+.dash-card-title { font-weight: 700; color: var(--navy); font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-card-sub { font-weight: 500; color: var(--text-muted); font-size: .92rem; }
+.dash-card-meta { color: var(--text-sec); font-size: .88rem; margin-top: .12rem; }
+.dash-card-chev { color: var(--text-muted); flex-shrink: 0; display: inline-flex; }
+.dash-card-chev svg { width: 18px; height: 18px; }
+
+.dash-empty {
+  display: flex; align-items: center; gap: .6rem;
+  color: var(--success); background: var(--green-bg);
+  border: 1px solid #cfe6d6; border-radius: var(--radius); padding: .8rem 1rem;
+}
+.dash-empty .icn { color: var(--success); }
 
 /* ================= פאנלים ================= */
 
@@ -744,9 +823,10 @@ a { color: var(--navy-light); }
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bottom-nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: .1rem;
-  padding: .45rem 0 .4rem; font-size: 1.15rem; color: var(--text-sec);
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  padding: .5rem 0 .4rem; color: var(--text-sec);
 }
+.bottom-nav-item .icn { width: 23px; height: 23px; }
 .bottom-nav-item span { font-size: .72rem; font-weight: 600; }
 .bottom-nav-item.active { color: var(--navy); }
 .bottom-nav-item.active span { color: var(--gold-dark); }

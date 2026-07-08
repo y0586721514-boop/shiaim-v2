@@ -78,9 +78,10 @@ function renderTodayView() {
       kpiCard('check', doneThisMonth, 'הסתיימו החודש', 'green', 'projects-done') +
     '</div>';
 
-  // דורש תשומת לב
+  // דורש תשומת לב — עם "נקה הכל"
   html += '<div id="dash-attention"></div>';
-  html += dashSection('alert', 'דורש תשומת לב', attention ? attention + '' : '');
+  html += '<div class="dash-section-head">' + icon('alert') + '<span>דורש תשומת לב</span>' +
+    (attention ? '<span class="dash-count">' + attention + '</span><button class="dash-clear-btn" id="clear-attention">נקה הכל</button>' : '') + '</div>';
   if (!attention) {
     html += '<div class="dash-empty">' + icon('check') + '<span>הכל בשליטה — אין פרויקטים באיחור או תקועים</span></div>';
   } else {
@@ -136,6 +137,15 @@ function renderTodayView() {
       else if (nav === 'attention') { const el = document.querySelector('#dash-attention'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     });
   });
+
+  // נקה הכל — הסרת כל התראות "דורש תשומת לב"
+  const clearAttn = container.querySelector('#clear-attention');
+  if (clearAttn) clearAttn.onclick = () => {
+    const d = getDismissed();
+    overdue.concat(stuck).concat(waitingIdeas).forEach(x => { d[x.id] = new Date().toISOString(); });
+    localStorage.setItem(DISMISS_KEY, JSON.stringify(d));
+    renderTodayView();
+  };
 
   // ניקוי עדכונים — מסמן הכל כנצפה
   const clearBtn = container.querySelector('#clear-updates');

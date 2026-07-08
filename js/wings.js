@@ -14,8 +14,12 @@ function greetingByHour() {
 }
 
 function todayDateLabel() {
-  try { return new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
-  catch (e) { return fmtDate(new Date().toISOString()); }
+  const now = new Date();
+  let greg;
+  try { greg = now.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch (e) { greg = fmtDate(now.toISOString()); }
+  const heb = hebrewDate(now);
+  return heb ? greg + ' · ' + heb : greg;
 }
 
 function renderTodayView() {

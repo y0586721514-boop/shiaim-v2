@@ -633,6 +633,7 @@ function designFilesHtml(p, d) {
         (isImg
           ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=' + esc(f.fileId) + '&sz=w400" alt="' + esc(f.name) + '" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'idea-img-fallback\',textContent:\'📎 ' + esc(f.name).replace(/'/g, '') + '\'}))"></a>'
           : '<a class="idea-img-fallback" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + fileIcon(f.mimeType) + ' ' + esc(f.name) + '</a>') +
+        (f.category && typeof designDocLabel === 'function' && designDocLabel(f.category) ? '<span class="idea-cat">' + esc(designDocLabel(f.category)) + '</span>' : '') +
         '<button class="idea-img-del" data-file-id="' + esc(f.id) + '" title="הסר">✕</button>' +
       '</div>';
     }).join('') + '</div>';

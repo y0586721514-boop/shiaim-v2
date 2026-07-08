@@ -177,7 +177,10 @@ function renderStudioHtml(p, d) {
               (on ? '✓ ' : '') + esc(it.label) + '</button>';
           }).join('') +
         '</div>' +
-        '<p class="form-hint">סמן מה כבר יש. את הקבצים עצמם מעלים למטה ב"קבצי העיצוב".</p>' +
+        '<p class="form-hint">סמן מה כבר יש, או השתמש ב"העלאת מסמכים חכמה" שמזהה ומסדר את הקבצים לבד.</p>' +
+        '<div class="studio-btns">' +
+          '<button type="button" class="btn-gold" id="studio-smart-upload">📥 העלאת מסמכים חכמה</button>' +
+        '</div>' +
 
         '<div class="studio-btns">' +
           '<button type="button" class="btn-secondary" id="studio-brief">📋 סדר בריף</button>' +
@@ -231,6 +234,9 @@ function wireStudio(body, p, d) {
       renderDesignPanel();
     };
   });
+
+  const smartBtn = body.querySelector('#studio-smart-upload');
+  if (smartBtn) smartBtn.onclick = () => openDesignSmartUpload(p, d);
 
   const briefBtn = body.querySelector('#studio-brief');
   if (briefBtn) briefBtn.onclick = () => showTextModal('בריף מסודר', buildBrief(p, d), 'העתק בריף');
@@ -322,6 +328,130 @@ function showTextModal(title, text, copyLabel) {
       if (ta) { ta.focus(); ta.select(); }
     }
   });
+}
+
+/* ================================================================
+   העלאת מסמכים חכמה לעיצוב — מזהה קטגוריה לפי שם+סוג הקובץ,
+   מעלה ל-Drive, מסדר לפי קטגוריה ומעדכן את צ'קליסט הרפרנס.
+   (זיהוי לפי שם/סוג + אישור ידני — כמו מסך הייבוא החכם.)
+   ================================================================ */
+
+const DESIGN_DOC_CATEGORIES = [
+  { key: 'barcode', label: 'ברקוד', ref: 'barcode' },
+  { key: 'logo', label: 'לוגו לקוח', ref: 'logo' },
+  { key: 'productPhoto', label: 'תמונת מוצר', ref: 'productPhoto' },
+  { key: 'existingPack', label: 'אריזת מקור', ref: 'existingPack' },
+  { key: 'dieline', label: 'Dieline / פריסה', ref: 'dieline' },
+  { key: 'brand', label: 'מיתוג / גרפיקה', ref: 'brand' },
+  { key: 'render', label: 'הדמיה', ref: '' },
+  { key: 'doc', label: 'מסמך / חשבונית', ref: '' },
+  { key: 'other', label: 'אחר', ref: '' }
+];
+
+function designDocLabel(key) {
+  const c = DESIGN_DOC_CATEGORIES.find(x => x.key === key);
+  return c ? c.label : '';
+}
+
+/** ניחוש קטגוריה לפי שם הקובץ וסוגו */
+function guessDesignDocCategory(name, mime) {
+  const n = String(name || '').toLowerCase();
+  const has = (...arr) => arr.some(k => n.indexOf(k) > -1);
+  if (has('barcode', 'ברקוד', 'ean', 'upc', 'sku', 'מק"ט', 'מקט')) return 'barcode';
+  if (has('logo', 'לוגו')) return 'logo';
+  if (has('dieline', 'die-cut', 'die cut', 'diecut', 'keyline', 'פריסה', 'structure')) return 'dieline';
+  if (has('mockup', 'render', 'הדמיה', 'mock')) return 'render';
+  if (has('brand', 'מיתוג', 'guideline', 'styleguide', 'style-guide')) return 'brand';
+  if (has('pack', 'אריזה', 'carton', 'box', 'original', 'מקור')) return 'existingPack';
+  if (has('invoice', 'חשבונית', 'packing', 'order')) return 'doc';
+  if (has('product', 'מוצר', 'front', 'חזית', 'photo', 'image', 'img')) return 'productPhoto';
+  if (String(mime || '').indexOf('image/') === 0) return 'productPhoto';
+  return 'other';
+}
+
+/** בחירת קבצים → מודל אישור */
+function openDesignSmartUpload(p, d) {
+  if (IS_DEMO) { toast('העלאת קבצים תעבוד אחרי חיבור לשרת האמיתי', 'error'); return; }
+  const input = document.createElement('input');
+  input.type = 'file'; input.multiple = true; input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = () => {
+    const files = Array.from(input.files || []);
+    input.remove();
+    if (!files.length) return;
+    const ok = files.filter(f => f.size <= 20 * 1024 * 1024);
+    if (ok.length < files.length) toast('חלק מהקבצים גדולים מ-20MB ולא ייכללו', 'error');
+    if (!ok.length) return;
+    openDesignSmartReview(p, d, ok);
+  };
+  input.click();
+}
+
+/** מודל אישור — קטגוריה מזוהה לכל קובץ, ניתנת לתיקון */
+function openDesignSmartReview(p, d, files) {
+  const rows = files.map((f, idx) => {
+    const guess = guessDesignDocCategory(f.name, f.type);
+    const opts = DESIGN_DOC_CATEGORIES.map(c => '<option value="' + c.key + '"' + (c.key === guess ? ' selected' : '') + '>' + esc(c.label) + '</option>').join('');
+    const isImg = String(f.type || '').indexOf('image/') === 0;
+    return '<div class="dsu-row">' +
+      '<span class="dsu-ico">' + (isImg ? '🖼️' : fileIcon(f.type)) + '</span>' +
+      '<span class="dsu-name" title="' + esc(f.name) + '">' + esc(f.name) + '</span>' +
+      '<select class="form-select dsu-cat" data-idx="' + idx + '">' + opts + '</select>' +
+    '</div>';
+  }).join('');
+  openModal({
+    title: '📥 העלאת מסמכים חכמה · ' + files.length + ' קבצים',
+    maxWidth: '560px',
+    bodyHtml:
+      '<p class="form-hint">זיהיתי לכל קובץ קטגוריה לפי השם והסוג. בדוק ותקן במידת הצורך, ואז "סדר והעלה" — הקבצים יעלו ל-Drive ויסומנו בצ׳קליסט.</p>' +
+      '<div class="dsu-list">' + rows + '</div>',
+    footerHtml: '<button class="btn-gold" id="dsu-apply">✓ סדר והעלה</button><button class="btn-secondary btn-modal-close">ביטול</button>',
+    onOpen(back, close) {
+      back.querySelector('#dsu-apply').onclick = () => {
+        const cats = Array.from(back.querySelectorAll('.dsu-cat')).map(s => s.value);
+        const entries = files.map((f, i) => ({ file: f, category: cats[i] }));
+        close();
+        applyDesignSmartUpload(p, d, entries);
+      };
+    }
+  });
+}
+
+/** העלאה בפועל: מעלה כל קובץ ל-Drive, מתייג קטגוריה, מסמן רפרנס */
+async function applyDesignSmartUpload(p, d, entries) {
+  showSpinner(true);
+  try {
+    if (!p.folderId) {
+      const fr = await api('ensureFolder', { entity: 'project', id: p.id }, { noQueue: true });
+      if (fr.folderId) p.folderId = fr.folderId; else throw { code: fr.error || 'folder_failed' };
+    }
+    d.files = designFiles(d);
+    const refs = Object.assign({}, d.refs || {});
+    let done = 0;
+    for (const en of entries) {
+      const cat = DESIGN_DOC_CATEGORIES.find(c => c.key === en.category) || { label: 'קובץ', ref: '' };
+      const res = await api('uploadFile', {
+        folderId: p.folderId,
+        filename: '[' + cat.label + '] ' + en.file.name,
+        base64: await fileToBase64(en.file),
+        mimeType: en.file.type
+      }, { noQueue: true });
+      const f = res.file;
+      d.files.push({ id: uid(), fileId: f.id, name: f.name, url: f.url, mimeType: f.mimeType, size: f.size, date: new Date().toISOString(), user: S.user, category: en.category });
+      if (cat.ref) refs[cat.ref] = true;
+      done++;
+    }
+    d.refs = refs;
+    await api('updateDesignField', { projectId: p.id, designId: d.id, field: 'files', value: d.files });
+    const r = await api('updateDesignField', { projectId: p.id, designId: d.id, field: 'refs', value: refs });
+    if (r.obj) mergeEntity('project', r.obj);
+    toast(done + ' קבצים הועלו וסודרו ✓', 'success');
+    renderDesignPanel();
+  } catch (e) {
+    toast(e.code === 'network' ? 'העלאה דורשת חיבור לאינטרנט' : friendlyError(e.code), 'error');
+  } finally {
+    showSpinner(false);
+  }
 }
 
 /* ---- עורך ה-Master Prompt ---- */

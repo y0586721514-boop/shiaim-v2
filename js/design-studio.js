@@ -236,7 +236,7 @@ function wireStudio(body, p, d) {
   });
 
   const smartBtn = body.querySelector('#studio-smart-upload');
-  if (smartBtn) smartBtn.onclick = () => openDesignSmartUpload(p, d);
+  if (smartBtn) smartBtn.onclick = () => openDesignSmartUpload(p, d, false);
 
   const briefBtn = body.querySelector('#studio-brief');
   if (briefBtn) briefBtn.onclick = () => showTextModal('בריף מסודר', buildBrief(p, d), 'העתק בריף');
@@ -369,8 +369,9 @@ function guessDesignDocCategory(name, mime) {
   return 'other';
 }
 
-/** בחירת קבצים → מודל אישור */
-function openDesignSmartUpload(p, d) {
+/** בחירת קבצים → מודל אישור.
+    target = נכס העיצוב (isProject=false) או הפרויקט עצמו (isProject=true) */
+function openDesignSmartUpload(p, target, isProject) {
   if (IS_DEMO) { toast('העלאת קבצים תעבוד אחרי חיבור לשרת האמיתי', 'error'); return; }
   const input = document.createElement('input');
   input.type = 'file'; input.multiple = true; input.style.display = 'none';
@@ -382,13 +383,13 @@ function openDesignSmartUpload(p, d) {
     const ok = files.filter(f => f.size <= 20 * 1024 * 1024);
     if (ok.length < files.length) toast('חלק מהקבצים גדולים מ-20MB ולא ייכללו', 'error');
     if (!ok.length) return;
-    openDesignSmartReview(p, d, ok);
+    openDesignSmartReview(p, target, isProject, ok);
   };
   input.click();
 }
 
 /** מודל אישור — קטגוריה מזוהה לכל קובץ, ניתנת לתיקון */
-function openDesignSmartReview(p, d, files) {
+function openDesignSmartReview(p, target, isProject, files) {
   const rows = files.map((f, idx) => {
     const guess = guessDesignDocCategory(f.name, f.type);
     const opts = DESIGN_DOC_CATEGORIES.map(c => '<option value="' + c.key + '"' + (c.key === guess ? ' selected' : '') + '>' + esc(c.label) + '</option>').join('');
@@ -411,22 +412,25 @@ function openDesignSmartReview(p, d, files) {
         const cats = Array.from(back.querySelectorAll('.dsu-cat')).map(s => s.value);
         const entries = files.map((f, i) => ({ file: f, category: cats[i] }));
         close();
-        applyDesignSmartUpload(p, d, entries);
+        applyDesignSmartUpload(p, target, isProject, entries);
       };
     }
   });
 }
 
-/** העלאה בפועל: מעלה כל קובץ ל-Drive, מתייג קטגוריה, מסמן רפרנס */
-async function applyDesignSmartUpload(p, d, entries) {
+/** העלאה בפועל: מעלה כל קובץ ל-Drive, מתייג קטגוריה, מסמן רפרנס.
+    ברמת נכס (isProject=false) — נשמר ב-target.files/refs דרך updateDesignField.
+    ברמת פרויקט (isProject=true) — נשמר ב-p.refFiles/refs דרך updateField. */
+async function applyDesignSmartUpload(p, target, isProject, entries) {
+  const filesField = isProject ? 'refFiles' : 'files';
   showSpinner(true);
   try {
     if (!p.folderId) {
       const fr = await api('ensureFolder', { entity: 'project', id: p.id }, { noQueue: true });
       if (fr.folderId) p.folderId = fr.folderId; else throw { code: fr.error || 'folder_failed' };
     }
-    d.files = designFiles(d);
-    const refs = Object.assign({}, d.refs || {});
+    const files = (target[filesField] || []).slice();
+    const refs = Object.assign({}, target.refs || {});
     let done = 0;
     for (const en of entries) {
       const cat = DESIGN_DOC_CATEGORIES.find(c => c.key === en.category) || { label: 'קובץ', ref: '' };
@@ -437,21 +441,92 @@ async function applyDesignSmartUpload(p, d, entries) {
         mimeType: en.file.type
       }, { noQueue: true });
       const f = res.file;
-      d.files.push({ id: uid(), fileId: f.id, name: f.name, url: f.url, mimeType: f.mimeType, size: f.size, date: new Date().toISOString(), user: S.user, category: en.category });
+      files.push({ id: uid(), fileId: f.id, name: f.name, url: f.url, mimeType: f.mimeType, size: f.size, date: new Date().toISOString(), user: S.user, category: en.category });
       if (cat.ref) refs[cat.ref] = true;
       done++;
     }
-    d.refs = refs;
-    await api('updateDesignField', { projectId: p.id, designId: d.id, field: 'files', value: d.files });
-    const r = await api('updateDesignField', { projectId: p.id, designId: d.id, field: 'refs', value: refs });
+    target[filesField] = files;
+    target.refs = refs;
+    let r;
+    if (isProject) {
+      await api('updateField', { entity: 'project', id: p.id, field: filesField, value: files });
+      r = await api('updateField', { entity: 'project', id: p.id, field: 'refs', value: refs });
+    } else {
+      await api('updateDesignField', { projectId: p.id, designId: target.id, field: filesField, value: files });
+      r = await api('updateDesignField', { projectId: p.id, designId: target.id, field: 'refs', value: refs });
+    }
     if (r.obj) mergeEntity('project', r.obj);
     toast(done + ' קבצים הועלו וסודרו ✓', 'success');
-    renderDesignPanel();
+    if (isProject) renderDesignProjectPanel(); else renderDesignPanel();
   } catch (e) {
     toast(e.code === 'network' ? 'העלאה דורשת חיבור לאינטרנט' : friendlyError(e.code), 'error');
   } finally {
     showSpinner(false);
   }
+}
+
+/* ---- קטע קבצי רפרנס ברמת פרויקט העיצוב ---- */
+
+function projectRefsHtml(p) {
+  const refs = p.refs || {};
+  const files = p.refFiles || [];
+  return (
+    '<div class="log-section-title" style="margin-top:1.1rem">📎 קבצי רפרנס למוצר</div>' +
+    '<p class="form-hint">לוגו, ברקוד, Dieline ותמונות — משותפים לכל נכסי העיצוב של המוצר.</p>' +
+    '<div class="ref-chips">' +
+      REF_ITEMS.map(it => {
+        const on = refs[it.key];
+        return '<button type="button" class="ref-chip' + (on ? ' on' : '') + '" data-pref="' + it.key + '">' +
+          (on ? '✓ ' : '') + esc(it.label) + '</button>';
+      }).join('') +
+    '</div>' +
+    '<div class="studio-btns">' +
+      '<button type="button" class="btn-gold" id="proj-smart-upload">📥 העלאת מסמכים חכמה</button>' +
+    '</div>' +
+    (files.length
+      ? '<div class="files-list" style="margin-top:.5rem">' + files.map(f =>
+          '<div class="file-row"><span>' + (String(f.mimeType || '').indexOf('image/') === 0 ? '🖼️' : fileIcon(f.mimeType)) + '</span>' +
+          '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' +
+          (f.category ? '<span class="file-size">' + esc(designDocLabel(f.category)) + '</span>' : '') +
+          (isBoss() ? '<button class="file-del" data-pfile="' + esc(f.id) + '" title="הסר">🗑</button>' : '') +
+          '</div>'
+        ).join('') + '</div>'
+      : '')
+  );
+}
+
+function wireProjectRefs(body, p) {
+  body.querySelectorAll('.ref-chip[data-pref]').forEach(chip => {
+    chip.onclick = async () => {
+      const key = chip.dataset.pref;
+      const refs = Object.assign({}, p.refs || {});
+      refs[key] = !refs[key];
+      p.refs = refs;
+      try {
+        const r = await api('updateField', { entity: 'project', id: p.id, field: 'refs', value: refs });
+        if (r.obj) mergeEntity('project', r.obj);
+      } catch (e) { toast(friendlyError(e.code), 'error'); }
+      renderDesignProjectPanel();
+    };
+  });
+  const btn = body.querySelector('#proj-smart-upload');
+  if (btn) btn.onclick = () => openDesignSmartUpload(p, p, true);
+
+  body.querySelectorAll('.file-del[data-pfile]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.pfile;
+      const f = (p.refFiles || []).find(x => x.id === id);
+      if (!f) return;
+      const ok = await confirmModal({ title: 'הסרת קובץ', message: 'להסיר את "' + f.name + '"? (הקובץ עובר לסל האשפה ב-Drive)', btnLabel: 'הסר' });
+      if (!ok) return;
+      p.refFiles = (p.refFiles || []).filter(x => x.id !== id);
+      renderDesignProjectPanel();
+      try {
+        const r = await api('updateField', { entity: 'project', id: p.id, field: 'refFiles', value: p.refFiles });
+        if (r.obj) mergeEntity('project', r.obj);
+      } catch (e) { toast(friendlyError(e.code), 'error'); }
+    };
+  });
 }
 
 /* ---- עורך ה-Master Prompt ---- */

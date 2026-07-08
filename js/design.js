@@ -286,6 +286,7 @@ function renderDesignProjectPanel() {
     priorityRowHtml(p.priority, isBoss()) +
     productSpecRows(p) +
     packagingRows(p) +
+    projectRefsHtml(p) +
     designAssetsListHtml(p) +
     filesSectionHtml(p) +
     logSectionHtml('importantInfo', p.importantInfo) +
@@ -309,6 +310,7 @@ function renderDesignProjectPanel() {
       return saveDesignProjectField(p.id, f, v);
     }
   });
+  wireProjectRefs(body, p);
   wireDesignAssets(body, p);
   wireFilesSection(body, p);
   wirePriority(body, { editable: isBoss(), save: (v) => saveDesignProjectField(p.id, 'priority', v) });

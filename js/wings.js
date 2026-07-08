@@ -319,6 +319,7 @@ function ideaCardHtml(i) {
       (i.description ? '<div class="entity-meta">' + esc(i.description) + '</div>' : '') +
       '<div class="entity-meta">' +
         (clientName(i.clientId) ? '<span>👤 ' + esc(clientName(i.clientId)) + '</span>' : '') +
+        (i.potentialClient ? '<span>🔸 פוטנציאלי: ' + esc(i.potentialClient) + '</span>' : '') +
         '<span>נוסף ' + relTime(i.createdAt) + ' ע"י ' + esc(userDisplay(i.createdBy)) + '</span>' +
         (i.archived && i.archiveReason ? '<span>סיבת דחייה: ' + esc(i.archiveReason) + '</span>' : '') +
       '</div>' +
@@ -343,7 +344,8 @@ function renderIdeaPanel() {
   body.innerHTML =
     fieldRowHtml({ label: 'שם', field: 'name', value: i.name }) +
     fieldRowHtml({ label: 'תיאור', field: 'description', value: i.description, type: 'textarea' }) +
-    fieldRowHtml({ label: 'לקוח', field: 'clientId', value: i.clientId, display: clientName(i.clientId), type: 'select' }) +
+    fieldRowHtml({ label: 'לקוח קיים', field: 'clientId', value: i.clientId, display: clientName(i.clientId), type: 'select' }) +
+    fieldRowHtml({ label: 'לקוח פוטנציאלי', field: 'potentialClient', value: i.potentialClient }) +
     '<div class="field-row"><span class="field-label">נוסף</span><span class="field-value readonly">' +
       esc(fmtDate(i.createdAt) + ' ע"י ' + userDisplay(i.createdBy)) + '</span></div>' +
     (i.archived ? '<div class="field-row"><span class="field-label">בארכיון</span><span class="field-value readonly">' +
@@ -477,6 +479,7 @@ function convertIdeaFlow(id) {
   const i = getIdea(id);
   if (!i) return;
   const notes = (i.notes || []).slice();
+  if (i.potentialClient) notes.unshift({ date: i.createdAt, user: i.createdBy, text: 'לקוח פוטנציאלי מהרעיון: ' + i.potentialClient });
   if (i.description) notes.unshift({ date: i.createdAt, user: i.createdBy, text: 'מהרעיון: ' + i.description });
   closePanel('idea-panel');
   openAddProjectModal({
@@ -557,7 +560,8 @@ function openAddIdeaModal() {
     bodyHtml:
       '<div class="form-group"><label class="form-label">שם הרעיון *</label><input type="text" id="ai-name" class="form-input" placeholder="מה הרעיון?"></div>' +
       '<div class="form-group"><label class="form-label">תיאור קצר</label><textarea id="ai-desc" class="form-textarea" placeholder="כמה מילים כדי שנזכור במה מדובר"></textarea></div>' +
-      '<div class="form-group"><label class="form-label">לקוח (אם יש)</label><select id="ai-client" class="form-select"><option value="">— ללא —</option>' + clientOpts + '</select></div>',
+      '<div class="form-group"><label class="form-label">לקוח קיים (אם יש)</label><select id="ai-client" class="form-select"><option value="">— ללא —</option>' + clientOpts + '</select></div>' +
+      '<div class="form-group"><label class="form-label">לקוח פוטנציאלי</label><input type="text" id="ai-potential" class="form-input" placeholder="שם ליד / לקוח שעדיין לא במערכת"></div>',
     footerHtml: '<button class="btn-gold" id="ai-submit">💡 הוסף רעיון</button><button class="btn-secondary btn-modal-close">ביטול</button>',
     onOpen(back, close) {
       back.querySelector('#ai-submit').onclick = async () => {
@@ -567,6 +571,7 @@ function openAddIdeaModal() {
           id: uid(), name,
           description: back.querySelector('#ai-desc').value.trim(),
           clientId: back.querySelector('#ai-client').value,
+          potentialClient: back.querySelector('#ai-potential').value.trim(),
           notes: [], archived: false, archiveReason: ''
         };
         close();

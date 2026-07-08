@@ -631,7 +631,9 @@ a { color: var(--navy-light); }
 .doc-file-del:hover { background: var(--red-bg); }
 .doc-add-btn { margin-top: .6rem; width: 100%; }
 .doc-notes { margin-top: .7rem; background: var(--amber-bg); border-radius: var(--radius); padding: .6rem .8rem; }
+.doc-notes.doc-notes-empty { background: var(--surface-2); }
 .doc-notes-title { font-weight: 700; color: #8a5b00; margin-bottom: .4rem; }
+.doc-notes.doc-notes-empty .doc-notes-title { color: var(--text-muted); }
 
 /* ================= מחשבון ייבוא ================= */
 

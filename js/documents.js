@@ -9,8 +9,8 @@
 const DOC_SECTIONS = [
   {
     key: 'order', title: '🧾 חשבוניות ומסמכי הזמנה',
-    hint: 'פרטי ההזמנה, הזמנה ללקוח, חשבוניות תשלום',
-    slots: ['פרטי ההזמנה', 'הזמנה ללקוח', 'חשבונית מקדמה', 'חשבונית תשלום', 'חשבונית סיום תשלום'],
+    hint: 'פרטי ההזמנה, הזמנה ללקוח, חשבוניות תשלום, אישור העברה',
+    slots: ['פרטי ההזמנה', 'הזמנה ללקוח', 'חשבונית מקדמה', 'חשבונית תשלום', 'חשבונית סיום תשלום', 'אישור העברה בנקאית'],
     addLabel: '+ הוסף חשבונית / מסמך'
   },
   {
@@ -86,8 +86,8 @@ function docSectionHtml(p, s) {
       '<div class="doc-section-title">' + s.title + '</div>' +
       (s.hint ? '<div class="doc-section-hint">' + esc(s.hint) + '</div>' : '') +
       '<div class="doc-rows">' + rows + '</div>' +
-      (s.notes ? standardsNotesHtml(p) : '') +
       '<button class="btn-secondary doc-add-btn" data-section="' + s.key + '">' + esc(s.addLabel) + '</button>' +
+      sectionNotesHtml(p, s.key) +
     '</div>'
   );
 }
@@ -110,12 +110,21 @@ function docRowHtml(section, label, files, isCustom) {
   );
 }
 
-function standardsNotesHtml(p) {
+/** הערות "מה חסר / נדרש להשלים" — לכל קטגוריית מסמכים */
+function getSectionNotes(p, key) {
+  if (p.docNotes && p.docNotes[key] !== undefined) return p.docNotes[key];
+  if (key === 'standards' && p.standardsNotes) return p.standardsNotes; // תאימות לאחור
+  return '';
+}
+
+function sectionNotesHtml(p, key) {
+  const val = getSectionNotes(p, key);
+  const hasContent = val && val.trim();
   return (
-    '<div class="doc-notes">' +
+    '<div class="doc-notes' + (hasContent ? '' : ' doc-notes-empty') + '">' +
       '<div class="doc-notes-title">📝 מה חסר / נדרש להשלים</div>' +
-      '<textarea class="form-textarea" id="standards-notes" placeholder="רשום כאן אילו מסמכי תקן עדיין חסרים ומה צריך להשיג...">' + esc(p.standardsNotes || '') + '</textarea>' +
-      '<button class="btn-secondary" id="save-standards-notes" style="margin-top:.5rem">שמור הערות</button>' +
+      '<textarea class="form-textarea" data-notes="' + esc(key) + '" placeholder="רשום כאן אילו מסמכים עדיין חסרים ומה צריך להשיג...">' + esc(val) + '</textarea>' +
+      '<button class="btn-secondary" data-save-notes="' + esc(key) + '" style="margin-top:.5rem">שמור הערות</button>' +
     '</div>'
   );
 }
@@ -173,13 +182,27 @@ function wireDocSections(body, p) {
     btn.onclick = () => deleteDocument(p, btn.dataset.docId);
   });
 
-  const notesBtn = body.querySelector('#save-standards-notes');
-  if (notesBtn) {
-    notesBtn.onclick = async () => {
-      const val = body.querySelector('#standards-notes').value;
-      await updateFieldOptimistic('project', p.id, 'standardsNotes', val, null);
+  body.querySelectorAll('[data-save-notes]').forEach(btn => {
+    btn.onclick = async () => {
+      const key = btn.dataset.saveNotes;
+      const ta = body.querySelector('[data-notes="' + key + '"]');
+      const val = ta ? ta.value : '';
+      const notes = Object.assign({}, p.docNotes || {});
+      // מיגרציה חד-פעמית של הערות התקן הישנות
+      if (p.standardsNotes && notes.standards === undefined) notes.standards = p.standardsNotes;
+      notes[key] = val;
+      p.docNotes = notes;
+      btn.disabled = true; btn.textContent = 'שומר...';
+      try {
+        await api('updateField', { entity: 'project', id: p.id, field: 'docNotes', value: notes });
+        toast('ההערות נשמרו ✓', 'success');
+      } catch (e) {
+        toast(friendlyError(e.code), 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'שמור הערות';
+      }
     };
-  }
+  });
 }
 
 async function uploadDocument(p, section, label, file) {

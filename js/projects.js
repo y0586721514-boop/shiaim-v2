@@ -161,7 +161,7 @@ function projectRowHtml(p) {
   const designRows = (p.designs || []).map(d => {
     const ddl = deadlineInfo(d.deadline);
     return '<div class="design-subrow" data-design-id="' + esc(d.id) + '">' +
-      '<span>🎨</span><span class="design-name">' + esc(d.name) + '</span>' +
+      '<span class="design-subrow-icn">' + icon('design') + '</span><span class="design-name">' + esc(d.name) + '</span>' +
       (d.status ? '<span class="tag tag-status">' + esc(d.status) + '</span>' : '') +
       (d.priority ? '<span class="priority-stars">' + stars(d.priority) + '</span>' : '') +
       (ddl.label ? '<span class="tag ' + ddl.cls + '">' + ddl.label + '</span>' : '') +

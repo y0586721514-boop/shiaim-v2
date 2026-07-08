@@ -467,6 +467,8 @@ a { color: var(--navy-light); }
   width: 100%; color: var(--gold-dark); font-size: .85rem; font-weight: 600;
   margin-top: .3rem; padding-inline-start: .2rem; min-height: 1.1em;
 }
+.design-subrow-icn { display: inline-flex; color: var(--gold-dark); }
+.design-subrow-icn .icn { width: 16px; height: 16px; }
 
 /* ================= פאנלים ================= */
 
